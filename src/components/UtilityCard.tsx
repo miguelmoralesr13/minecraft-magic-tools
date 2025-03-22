@@ -1,6 +1,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
 interface UtilityCardProps {
   title: string;
@@ -8,6 +9,7 @@ interface UtilityCardProps {
   icon: React.ReactNode;
   color: string;
   delay?: number;
+  link?: string;
 }
 
 const UtilityCard: React.FC<UtilityCardProps> = ({ 
@@ -15,7 +17,8 @@ const UtilityCard: React.FC<UtilityCardProps> = ({
   description, 
   icon,
   color,
-  delay = 0 
+  delay = 0,
+  link = "#"
 }) => {
   return (
     <motion.div
@@ -42,9 +45,9 @@ const UtilityCard: React.FC<UtilityCardProps> = ({
       <p className="text-muted-foreground text-sm">{description}</p>
       
       <div className="mt-4 pt-4 border-t border-border">
-        <button className="text-sm font-medium text-primary hover:underline">
+        <Link to={link} className="text-sm font-medium text-primary hover:underline">
           Explorar &rarr;
-        </button>
+        </Link>
       </div>
     </motion.div>
   );

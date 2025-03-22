@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "../components/Layout";
 import Hero from "../components/Hero";
@@ -23,7 +22,8 @@ const Index: React.FC = () => {
             <path d="M9 21V9" />
           </svg>
         ),
-        color: "#4080ff"
+        color: "#4080ff",
+        link: "#"
       },
       {
         title: "Generador de Comandos",
@@ -34,7 +34,8 @@ const Index: React.FC = () => {
             <polyline points="8 6 2 12 8 18" />
           </svg>
         ),
-        color: "#4080ff"
+        color: "#4080ff",
+        link: "#"
       },
       {
         title: "Diseñador de Estructuras",
@@ -44,7 +45,8 @@ const Index: React.FC = () => {
             <path d="M3 20h18L12 4z" />
           </svg>
         ),
-        color: "#4080ff"
+        color: "#4080ff",
+        link: "#"
       },
       {
         title: "Comparador de Items",
@@ -54,7 +56,8 @@ const Index: React.FC = () => {
             <path d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
         ),
-        color: "#4080ff"
+        color: "#4080ff",
+        link: "/comparador-items"
       },
       {
         title: "Calculadora de XP",
@@ -64,7 +67,8 @@ const Index: React.FC = () => {
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
           </svg>
         ),
-        color: "#4080ff"
+        color: "#4080ff",
+        link: "#"
       },
       {
         title: "Generador de Semillas",
@@ -74,7 +78,8 @@ const Index: React.FC = () => {
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
           </svg>
         ),
-        color: "#4080ff"
+        color: "#4080ff",
+        link: "#"
       }
     ],
     java: [
@@ -88,7 +93,8 @@ const Index: React.FC = () => {
             <path d="M9 21V9" />
           </svg>
         ),
-        color: "#ff6b40"
+        color: "#ff6b40",
+        link: "#"
       },
       {
         title: "Calculadora de Encantamientos",
@@ -98,7 +104,8 @@ const Index: React.FC = () => {
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
           </svg>
         ),
-        color: "#ff6b40"
+        color: "#ff6b40",
+        link: "#"
       },
       {
         title: "Generador de DataPacks",
@@ -109,7 +116,8 @@ const Index: React.FC = () => {
             <polyline points="14 2 14 8 20 8" />
           </svg>
         ),
-        color: "#ff6b40"
+        color: "#ff6b40",
+        link: "#"
       },
       {
         title: "Optimizador de Granjas",
@@ -120,7 +128,8 @@ const Index: React.FC = () => {
             <path d="M8 9V7a4 4 0 0 1 8 0v2" />
           </svg>
         ),
-        color: "#ff6b40"
+        color: "#ff6b40",
+        link: "#"
       },
       {
         title: "Buscador de Biomas",
@@ -131,7 +140,8 @@ const Index: React.FC = () => {
             <path d="m21 21-4.3-4.3" />
           </svg>
         ),
-        color: "#ff6b40"
+        color: "#ff6b40",
+        link: "#"
       },
       {
         title: "Comparador de Servidores",
@@ -144,7 +154,8 @@ const Index: React.FC = () => {
             <path d="M16 10v4" />
           </svg>
         ),
-        color: "#ff6b40"
+        color: "#ff6b40",
+        link: "#"
       }
     ]
   };
@@ -213,6 +224,7 @@ const Index: React.FC = () => {
                 icon={utility.icon}
                 color={utility.color}
                 delay={index}
+                link={utility.link}
               />
             ))}
           </div>

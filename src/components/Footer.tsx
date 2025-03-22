@@ -1,5 +1,6 @@
 
 import React from "react";
+import { Link } from "react-router-dom";
 
 const Footer: React.FC = () => {
   return (
@@ -13,9 +14,9 @@ const Footer: React.FC = () => {
           </p>
           
           <div className="inline-block">
-            <button className="minecraft-button bedrock bg-secondary text-foreground">
+            <Link to="/comparador-items" className="minecraft-button bedrock bg-secondary text-foreground">
               Explorar Utilidades
-            </button>
+            </Link>
           </div>
         </div>
       </div>
