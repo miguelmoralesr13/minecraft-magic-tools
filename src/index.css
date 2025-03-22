@@ -1,10 +1,11 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -13,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 210 100% 50%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -32,22 +33,15 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
-    --radius: 0.5rem;
+    --radius: 0.85rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -61,7 +55,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
+    --primary: 210 100% 50%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -96,6 +90,75 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-lg dark:bg-black/60 border border-white/20 dark:border-black/20 shadow-lg;
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .nav-link {
+    @apply relative px-3 py-2 text-foreground/70 transition-colors hover:text-foreground;
+  }
+  
+  .nav-link::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 ease-out-expo;
+  }
+  
+  .nav-link:hover::after {
+    @apply w-full;
+  }
+  
+  .minecraft-button {
+    @apply relative overflow-hidden rounded-lg px-6 py-3 font-medium transition-all duration-300 before:absolute before:inset-0 before:-z-10 before:translate-y-[102%] before:transition-transform before:duration-300 hover:before:translate-y-0;
+  }
+  
+  .minecraft-button.bedrock {
+    @apply text-white before:bg-minecraft-bedrock;
+  }
+  
+  .minecraft-button.java {
+    @apply text-white before:bg-minecraft-java;
+  }
+}
+
+.opacity-0 {
+  opacity: 0;
+}
+
+.section-fade-in > * {
+  opacity: 0;
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.section-fade-in > *:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.section-fade-in > *:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.section-fade-in > *:nth-child(3) {
+  animation-delay: 0.5s;
+}
+
+.section-fade-in > *:nth-child(4) {
+  animation-delay: 0.7s;
+}
+
+.section-fade-in > *:nth-child(5) {
+  animation-delay: 0.9s;
+}
+
+.section-fade-in > *:nth-child(6) {
+  animation-delay: 1.1s;
 }
