@@ -1,4 +1,3 @@
-
 import React from "react";
 import { 
   Sword, 
@@ -105,13 +104,11 @@ export const javaUtilities = [
   },
 ];
 
-// Add the utilities export that combines both versions
 export const utilities = {
   bedrock: bedrockUtilities,
   java: javaUtilities
 };
 
-// Add the features export
 export const features = [
   {
     title: "Actualizado Constantemente",
@@ -130,24 +127,20 @@ export const features = [
   }
 ];
 
-// Add the testimonials export
 export const testimonials = [
   {
-    name: "Carlos Mendez",
-    role: "Constructor de Redstone",
-    content: "La calculadora de redstone me ha ahorrado horas de prueba y error. Es increíblemente precisa y fácil de usar.",
-    avatar: "https://i.pravatar.cc/100?img=1"
+    quote: "La calculadora de redstone me ha ahorrado horas de prueba y error. Es increíblemente precisa y fácil de usar.",
+    author: "Carlos Mendez",
+    role: "Constructor de Redstone"
   },
   {
-    name: "Laura Gómez",
-    role: "Speedrunner",
-    content: "El mapa de semillas es mi herramienta favorita. Me permite encontrar las estructuras que necesito rápidamente.",
-    avatar: "https://i.pravatar.cc/100?img=2"
+    quote: "El mapa de semillas es mi herramienta favorita. Me permite encontrar las estructuras que necesito rápidamente.",
+    author: "Laura Gómez",
+    role: "Speedrunner"
   },
   {
-    name: "Miguel Santos",
-    role: "Jugador Survival",
-    content: "Uso el comparador de items todos los días. Me ayuda a decidir qué equipo craftear según mis necesidades.",
-    avatar: "https://i.pravatar.cc/100?img=3"
+    quote: "Uso el comparador de items todos los días. Me ayuda a decidir qué equipo craftear según mis necesidades.",
+    author: "Miguel Santos",
+    role: "Jugador Survival"
   }
 ];
