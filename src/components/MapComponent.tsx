@@ -32,7 +32,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ seed, filters, version, str
   } = useMapInteraction(structures, filters);
 
   return (
-    <Card className="p-4 h-[600px] relative overflow-hidden">
+    <Card className="p-4 h-[600px] relative overflow-hidden border border-border rounded-md">
       {/* Overlays for no seed or no structures */}
       <NoDataOverlay 
         noSeed={!seed} 
