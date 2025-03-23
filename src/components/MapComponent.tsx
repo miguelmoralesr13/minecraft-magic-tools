@@ -10,87 +10,70 @@ import {
   Trees, 
   Mountain, 
   Building, 
-  Pencil
+  AlertCircle,
+  ChevronsUp,
+  Anchor,
+  Building2,
+  Axe,
+  Radar,
+  Workflow,
+  Landmark
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { StructureType, MinecraftStructure } from "@/utils/minecraft/StructureGenerator";
+import { BiomeType, biomeColors } from "@/utils/minecraft/BiomeGenerator";
 
 interface MapComponentProps {
   seed: string;
   filters: string[];
   version: "bedrock" | "java";
+  structures: MinecraftStructure[];
 }
 
-interface MapLocation {
-  id: string;
-  type: string;
-  x: number;
-  z: number;
-  name: string;
-  icon: React.ReactNode;
-}
-
-const MapComponent: React.FC<MapComponentProps> = ({ seed, filters, version }) => {
+const MapComponent: React.FC<MapComponentProps> = ({ seed, filters, version, structures }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [mapData, setMapData] = useState<MapLocation[]>([]);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [startDragPosition, setStartDragPosition] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null);
+  const [selectedStructure, setSelectedStructure] = useState<MinecraftStructure | null>(null);
+  const [showBiomes, setShowBiomes] = useState(false);
   
   // Función para obtener el icono según el tipo
-  const getIconForType = (type: string) => {
+  const getIconForType = (type: StructureType) => {
     switch (type) {
       case "village": return <Home className="h-4 w-4" />;
-      case "temple": return <Castle className="h-4 w-4" />;
+      case "temple": return <Landmark className="h-4 w-4" />;
       case "spawner": return <Skull className="h-4 w-4" />;
-      case "forest": return <Trees className="h-4 w-4" />;
-      case "mountain": return <Mountain className="h-4 w-4" />;
       case "stronghold": return <Building className="h-4 w-4" />;
+      case "monument": return <Anchor className="h-4 w-4" />;
+      case "mansion": return <Building2 className="h-4 w-4" />;
+      case "mineshaft": return <Axe className="h-4 w-4" />;
+      case "fortress": return <Castle className="h-4 w-4" />;
+      case "outpost": return <Radar className="h-4 w-4" />;
+      case "ruined_portal": return <Workflow className="h-4 w-4" />;
       default: return <Map className="h-4 w-4" />;
     }
   };
 
-  // Simulación de datos según la semilla (en un proyecto real, esto vendría de una API)
-  useEffect(() => {
-    if (!seed) {
-      setMapData([]);
-      return;
+  // Obtener color según el tipo de estructura
+  const getColorForType = (type: StructureType): string => {
+    switch (type) {
+      case "village": return "#3b82f6"; // Azul
+      case "temple": return "#facc15"; // Amarillo
+      case "spawner": return "#dc2626"; // Rojo
+      case "stronghold": return "#10b981"; // Verde
+      case "monument": return "#6366f1"; // Índigo
+      case "mansion": return "#8b5cf6"; // Violeta
+      case "mineshaft": return "#d97706"; // Naranja
+      case "fortress": return "#ef4444"; // Rojo brillante
+      case "outpost": return "#f59e0b"; // Amber
+      case "ruined_portal": return "#6b7280"; // Gris
+      default: return "#000000"; // Negro
     }
-
-    // Generar datos aleatorios basados en la semilla
-    const seedNumber = seed.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const random = (min: number, max: number) => Math.floor((seedNumber % 100) / 100 * (max - min) + min);
-    
-    const types = ["village", "temple", "spawner", "forest", "mountain", "stronghold"];
-    const newMapData: MapLocation[] = [];
-    
-    // Generar 15 ubicaciones aleatorias
-    for (let i = 0; i < 15; i++) {
-      const type = types[i % types.length];
-      if (filters.length === 0 || filters.includes(type)) {
-        newMapData.push({
-          id: `location-${i}`,
-          type,
-          x: random(-1000, 1000),
-          z: random(-1000, 1000),
-          name: `${type.charAt(0).toUpperCase() + type.slice(1)} #${i+1}`,
-          icon: getIconForType(type)
-        });
-      }
-    }
-    
-    setMapData(newMapData);
-    
-    // Notificar al usuario
-    toast.success(`Semilla cargada: ${seed}`, {
-      description: `${newMapData.length} ubicaciones encontradas`
-    });
-    
-  }, [seed, filters]);
+  };
 
   // Dibujar el mapa
   useEffect(() => {
@@ -103,30 +86,65 @@ const MapComponent: React.FC<MapComponentProps> = ({ seed, filters, version }) =
     // Limpiar el canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Dibujar el fondo
-    ctx.fillStyle = "#f3f4f6";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Dibujar la cuadrícula
-    ctx.strokeStyle = "#e5e7eb";
-    ctx.lineWidth = 1;
-    
-    const gridSize = 50 * zoom;
-    const offsetX = position.x % gridSize;
-    const offsetY = position.y % gridSize;
-    
-    for (let x = offsetX; x < canvas.width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    }
-    
-    for (let y = offsetY; y < canvas.height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
+    // Dibujar el fondo según si estamos mostrando biomas o no
+    if (showBiomes) {
+      // Si mostramos biomas, creamos un efecto de mosaico de color
+      const cellSize = 20 * zoom;
+      const offsetX = position.x % cellSize;
+      const offsetY = position.y % cellSize;
+      
+      for (let x = 0; x < canvas.width; x += cellSize) {
+        for (let y = 0; y < canvas.height; y += cellSize) {
+          // Convertir coordenadas del canvas a coordenadas del mundo
+          const worldX = Math.floor((x - position.x - canvas.width/2) / zoom);
+          const worldZ = Math.floor((y - position.y - canvas.height/2) / zoom);
+          
+          // Simulamos biomas para este ejemplo (en realidad deberíamos usar el BiomeGenerator)
+          // Esto es solo para visualización, no es preciso
+          const noiseX = Math.sin(worldX * 0.01) * Math.cos(worldZ * 0.01);
+          const noiseZ = Math.sin(worldZ * 0.02) * Math.cos(worldX * 0.02);
+          const biomeValue = (noiseX + noiseZ + 2) / 4; // Normalizado entre 0 y 1
+          
+          let biome: BiomeType;
+          if (biomeValue < 0.1) biome = 'ice_plains';
+          else if (biomeValue < 0.3) biome = 'plains';
+          else if (biomeValue < 0.5) biome = 'forest';
+          else if (biomeValue < 0.6) biome = 'desert';
+          else if (biomeValue < 0.7) biome = 'mountains';
+          else if (biomeValue < 0.8) biome = 'jungle';
+          else if (biomeValue < 0.9) biome = 'swamp';
+          else biome = 'ocean';
+          
+          ctx.fillStyle = biomeColors[biome];
+          ctx.fillRect(x + offsetX, y + offsetY, cellSize, cellSize);
+        }
+      }
+    } else {
+      // Dibujar el fondo normal
+      ctx.fillStyle = "#f3f4f6";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Dibujar la cuadrícula
+      ctx.strokeStyle = "#e5e7eb";
+      ctx.lineWidth = 1;
+      
+      const gridSize = 50 * zoom;
+      const offsetX = position.x % gridSize;
+      const offsetY = position.y % gridSize;
+      
+      for (let x = offsetX; x < canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      
+      for (let y = offsetY; y < canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
     }
     
     // Dibujar el origen (0,0)
@@ -142,24 +160,81 @@ const MapComponent: React.FC<MapComponentProps> = ({ seed, filters, version }) =
     ctx.font = "12px Arial";
     ctx.fillText("(0,0)", originX + 10, originY - 10);
     
-    // Dibujar las ubicaciones
-    mapData.forEach(location => {
-      const x = canvas.width / 2 + (location.x * zoom) + position.x;
-      const y = canvas.height / 2 + (location.z * zoom) + position.y;
-      
-      // Dibujar el punto
-      ctx.fillStyle = selectedLocation?.id === location.id ? "#ff0000" : "#3b82f6";
-      ctx.beginPath();
-      ctx.arc(x, y, 6, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Dibujar el nombre
-      ctx.fillStyle = "#000000";
-      ctx.font = "12px Arial";
-      ctx.fillText(`${location.name} (${location.x}, ${location.z})`, x + 10, y - 10);
+    // Dibujar las estructuras
+    structures.forEach(structure => {
+      // Solo dibujar si no hay filtros o si el tipo está en los filtros
+      if (filters.length === 0 || filters.includes(structure.type)) {
+        const x = canvas.width / 2 + (structure.x * zoom) / 16 + position.x;
+        const y = canvas.height / 2 + (structure.z * zoom) / 16 + position.y;
+        
+        // Dibujar el punto
+        ctx.fillStyle = selectedStructure?.x === structure.x && selectedStructure?.z === structure.z 
+          ? "#ff0000" 
+          : getColorForType(structure.type);
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Si está seleccionado o cercano al ratón, mostrar el nombre
+        if (selectedStructure?.x === structure.x && selectedStructure?.z === structure.z) {
+          ctx.fillStyle = "#000000";
+          ctx.font = "12px Arial";
+          ctx.fillText(
+            `${structure.type.charAt(0).toUpperCase() + structure.type.slice(1)} (${structure.x}, ${structure.z})`, 
+            x + 10, 
+            y - 10
+          );
+        }
+      }
     });
     
-  }, [mapData, position, zoom, selectedLocation]);
+  }, [structures, position, zoom, selectedStructure, filters, showBiomes]);
+
+  // Detectar estructura bajo el cursor
+  const handleCanvasClick = (e: React.MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const canvasX = e.clientX - rect.left;
+    const canvasY = e.clientY - rect.top;
+    
+    // Convertir coordenadas del canvas a coordenadas del mundo
+    const worldX = ((canvasX - canvas.width/2 - position.x) * 16) / zoom;
+    const worldZ = ((canvasY - canvas.height/2 - position.y) * 16) / zoom;
+    
+    // Buscar la estructura más cercana dentro de un radio
+    const clickRadius = 30 / zoom; // Radio de detección en bloques
+    let closestStructure = null;
+    let minDistance = clickRadius;
+    
+    structures.forEach(structure => {
+      // Solo considerar si no hay filtros o si el tipo está en los filtros
+      if (filters.length === 0 || filters.includes(structure.type)) {
+        const distance = Math.sqrt(
+          Math.pow(structure.x - worldX, 2) + 
+          Math.pow(structure.z - worldZ, 2)
+        );
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestStructure = structure;
+        }
+      }
+    });
+    
+    if (closestStructure) {
+      setSelectedStructure(closestStructure);
+      
+      // Mostrar toast con información
+      toast.info(`${closestStructure.type.charAt(0).toUpperCase() + closestStructure.type.slice(1)}`, {
+        description: `Coords: ${closestStructure.x}, ${closestStructure.z} | Bioma: ${closestStructure.biome} | Distancia al spawn: ${Math.floor(closestStructure.distanceFromSpawn)} bloques`
+      });
+    } else {
+      setSelectedStructure(null);
+    }
+  };
 
   // Manejar el zoom
   const handleWheel = (e: React.WheelEvent) => {
@@ -197,6 +272,14 @@ const MapComponent: React.FC<MapComponentProps> = ({ seed, filters, version }) =
     });
   };
 
+  // Alternar visualización de biomas
+  const toggleBiomes = () => {
+    setShowBiomes(!showBiomes);
+    toast.info(showBiomes ? "Biomas ocultos" : "Biomas mostrados", {
+      description: showBiomes ? "Mostrando vista de cuadrícula" : "Mostrando mapa de biomas"
+    });
+  };
+
   return (
     <Card className="p-4 h-[600px] relative overflow-hidden">
       {!seed && (
@@ -213,6 +296,15 @@ const MapComponent: React.FC<MapComponentProps> = ({ seed, filters, version }) =
         <Button 
           variant="outline" 
           size="sm" 
+          onClick={toggleBiomes}
+          disabled={!seed}
+        >
+          <Trees className="h-4 w-4 mr-2" />
+          {showBiomes ? "Ocultar Biomas" : "Mostrar Biomas"}
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
           onClick={handleCenter}
           disabled={!seed}
         >
@@ -223,9 +315,23 @@ const MapComponent: React.FC<MapComponentProps> = ({ seed, filters, version }) =
       
       <div className="absolute bottom-4 left-4 z-10">
         <div className="text-xs text-muted-foreground">
-          Zoom: {(zoom * 100).toFixed(0)}% | Escala: 1 bloque = {zoom < 1 ? `${(1/zoom).toFixed(1)} píxeles` : `${zoom.toFixed(1)} píxeles`}
+          Zoom: {(zoom * 100).toFixed(0)}% | Escala: 1 chunk = {zoom < 1 ? `${(1/zoom).toFixed(1)} píxeles` : `${zoom.toFixed(1)} píxeles`}
         </div>
       </div>
+      
+      {selectedStructure && (
+        <div className="absolute bottom-4 right-4 z-10 bg-background/80 p-2 rounded-md border border-border">
+          <h4 className="text-sm font-semibold flex items-center gap-1">
+            {getIconForType(selectedStructure.type)}
+            {selectedStructure.type.charAt(0).toUpperCase() + selectedStructure.type.slice(1)}
+          </h4>
+          <div className="text-xs text-muted-foreground">
+            <p>Coordenadas: X: {selectedStructure.x}, Z: {selectedStructure.z}</p>
+            <p>Bioma: {selectedStructure.biome}</p>
+            <p>Distancia al spawn: {Math.floor(selectedStructure.distanceFromSpawn)} bloques</p>
+          </div>
+        </div>
+      )}
       
       <canvas
         ref={canvasRef}
@@ -236,8 +342,19 @@ const MapComponent: React.FC<MapComponentProps> = ({ seed, filters, version }) =
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onClick={handleCanvasClick}
         className="w-full h-full cursor-grab active:cursor-grabbing"
       />
+      
+      {structures.length === 0 && seed && (
+        <div className="absolute inset-0 flex items-center justify-center flex-col gap-4 bg-background/80 z-10">
+          <AlertCircle className="h-16 w-16 text-muted-foreground" />
+          <h3 className="text-xl font-semibold">No se encontraron estructuras</h3>
+          <p className="text-muted-foreground text-center max-w-md">
+            No se encontraron estructuras con los filtros actuales. Prueba con otros filtros o una semilla diferente.
+          </p>
+        </div>
+      )}
     </Card>
   );
 };

@@ -13,38 +13,52 @@ import {
   Skull, 
   Trees, 
   Mountain, 
-  Building 
+  Building,
+  Anchor,
+  Building2,
+  Axe,
+  Radar,
+  Workflow,
+  Landmark
 } from "lucide-react";
 import { toast } from "sonner";
+import { StructureType } from "@/utils/minecraft/StructureGenerator";
 
 interface SeedFiltersSidebarProps {
   onFilterChange: (filters: string[]) => void;
   onSeedChange: (seed: string) => void;
   version: "bedrock" | "java";
+  onMinecraftVersionChange: (version: "1.16" | "1.20") => void;
+  minecraftVersion: "1.16" | "1.20";
 }
 
 interface FilterOption {
-  id: string;
+  id: StructureType;
   label: string;
   icon: React.ReactNode;
-  type: string;
 }
 
 const SeedFiltersSidebar: React.FC<SeedFiltersSidebarProps> = ({ 
   onFilterChange, 
   onSeedChange, 
-  version 
+  version,
+  onMinecraftVersionChange,
+  minecraftVersion
 }) => {
   const [seed, setSeed] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
   const filterOptions: FilterOption[] = [
-    { id: "village", label: "Aldeas", icon: <Home className="h-4 w-4" />, type: "village" },
-    { id: "temple", label: "Templos", icon: <Castle className="h-4 w-4" />, type: "temple" },
-    { id: "spawner", label: "Spawners", icon: <Skull className="h-4 w-4" />, type: "spawner" },
-    { id: "forest", label: "Bosques", icon: <Trees className="h-4 w-4" />, type: "forest" },
-    { id: "mountain", label: "Montañas", icon: <Mountain className="h-4 w-4" />, type: "mountain" },
-    { id: "stronghold", label: "Fortalezas", icon: <Building className="h-4 w-4" />, type: "stronghold" }
+    { id: "village", label: "Aldeas", icon: <Home className="h-4 w-4" /> },
+    { id: "temple", label: "Templos", icon: <Landmark className="h-4 w-4" /> },
+    { id: "stronghold", label: "Fortalezas", icon: <Building className="h-4 w-4" /> },
+    { id: "monument", label: "Monumentos", icon: <Anchor className="h-4 w-4" /> },
+    { id: "mansion", label: "Mansiones", icon: <Building2 className="h-4 w-4" /> },
+    { id: "mineshaft", label: "Minas", icon: <Axe className="h-4 w-4" /> },
+    { id: "fortress", label: "Fortalezas del Nether", icon: <Castle className="h-4 w-4" /> },
+    { id: "spawner", label: "Spawners", icon: <Skull className="h-4 w-4" /> },
+    { id: "outpost", label: "Puestos de Pillagers", icon: <Radar className="h-4 w-4" /> },
+    { id: "ruined_portal", label: "Portales en Ruinas", icon: <Workflow className="h-4 w-4" /> }
   ];
 
   const handleSeedSubmit = (e: React.FormEvent) => {
@@ -88,7 +102,7 @@ const SeedFiltersSidebar: React.FC<SeedFiltersSidebarProps> = ({
   };
 
   const handleSelectAll = () => {
-    const allFilters = filterOptions.map(option => option.type);
+    const allFilters = filterOptions.map(option => option.id);
     setSelectedFilters(allFilters);
     onFilterChange(allFilters);
   };
@@ -96,6 +110,13 @@ const SeedFiltersSidebar: React.FC<SeedFiltersSidebarProps> = ({
   const handleClearAll = () => {
     setSelectedFilters([]);
     onFilterChange([]);
+  };
+
+  const handleMinecraftVersionChange = (newVersion: "1.16" | "1.20") => {
+    onMinecraftVersionChange(newVersion);
+    toast.info(`Versión cambiada a ${newVersion}`, {
+      description: "La generación de estructuras se ha actualizado"
+    });
   };
 
   return (
@@ -129,6 +150,26 @@ const SeedFiltersSidebar: React.FC<SeedFiltersSidebarProps> = ({
         </Button>
       </form>
       
+      <div className="space-y-4 mb-6">
+        <h3 className="text-lg font-semibold">Versión de Minecraft</h3>
+        <div className="flex gap-2">
+          <Button 
+            variant={minecraftVersion === "1.16" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => handleMinecraftVersionChange("1.16")}
+          >
+            1.16
+          </Button>
+          <Button 
+            variant={minecraftVersion === "1.20" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => handleMinecraftVersionChange("1.20")}
+          >
+            1.20
+          </Button>
+        </div>
+      </div>
+      
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">Filtros</h3>
@@ -152,13 +193,13 @@ const SeedFiltersSidebar: React.FC<SeedFiltersSidebarProps> = ({
           </div>
         </div>
         
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
           {filterOptions.map((option) => (
             <div key={option.id} className="flex items-center space-x-2">
               <Checkbox 
                 id={option.id} 
-                checked={selectedFilters.includes(option.type)}
-                onCheckedChange={() => handleFilterToggle(option.type)}
+                checked={selectedFilters.includes(option.id)}
+                onCheckedChange={() => handleFilterToggle(option.id)}
               />
               <Label 
                 htmlFor={option.id}
@@ -174,7 +215,7 @@ const SeedFiltersSidebar: React.FC<SeedFiltersSidebarProps> = ({
       
       <div className="mt-6 pt-4 border-t border-border">
         <p className="text-xs text-muted-foreground">
-          {version === "java" ? "Java Edition" : "Bedrock Edition"} - La visualización es aproximada y puede no reflejar con exactitud todas las estructuras en tu mundo.
+          {version === "java" ? "Java Edition" : "Bedrock Edition"} {minecraftVersion} - La visualización es aproximada y puede no reflejar con exactitud todas las estructuras en tu mundo. Basado en algoritmos similares a los de Chunkbase.
         </p>
       </div>
     </Card>
