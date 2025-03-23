@@ -9,7 +9,10 @@ import {
   Cpu, 
   Map,
   Compass, 
-  Boxes
+  Boxes,
+  Lightbulb,
+  Clock,
+  Zap
 } from "lucide-react";
 
 export const bedrockUtilities = [
@@ -100,4 +103,51 @@ export const javaUtilities = [
     color: "#f59e0b",
     link: "#"
   },
+];
+
+// Add the utilities export that combines both versions
+export const utilities = {
+  bedrock: bedrockUtilities,
+  java: javaUtilities
+};
+
+// Add the features export
+export const features = [
+  {
+    title: "Actualizado Constantemente",
+    description: "Nuestras herramientas se actualizan con cada nueva versión de Minecraft para asegurar compatibilidad.",
+    icon: <Clock className="h-6 w-6" />
+  },
+  {
+    title: "Preciso y Confiable",
+    description: "Cálculos y datos verificados por la comunidad para garantizar precisión en todas nuestras herramientas.",
+    icon: <Lightbulb className="h-6 w-6" />
+  },
+  {
+    title: "Rápido y Eficiente",
+    description: "Herramientas optimizadas para ofrecer resultados instantáneos sin importar la complejidad.",
+    icon: <Zap className="h-6 w-6" />
+  }
+];
+
+// Add the testimonials export
+export const testimonials = [
+  {
+    name: "Carlos Mendez",
+    role: "Constructor de Redstone",
+    content: "La calculadora de redstone me ha ahorrado horas de prueba y error. Es increíblemente precisa y fácil de usar.",
+    avatar: "https://i.pravatar.cc/100?img=1"
+  },
+  {
+    name: "Laura Gómez",
+    role: "Speedrunner",
+    content: "El mapa de semillas es mi herramienta favorita. Me permite encontrar las estructuras que necesito rápidamente.",
+    avatar: "https://i.pravatar.cc/100?img=2"
+  },
+  {
+    name: "Miguel Santos",
+    role: "Jugador Survival",
+    content: "Uso el comparador de items todos los días. Me ayuda a decidir qué equipo craftear según mis necesidades.",
+    avatar: "https://i.pravatar.cc/100?img=3"
+  }
 ];
