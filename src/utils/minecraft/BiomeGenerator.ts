@@ -38,104 +38,109 @@ export const biomeColors: Record<BiomeType, string> = {
 };
 
 export class BiomeGenerator {
-  private random: JavaRandom;
-  private temperatureNoise: number[][];
-  private humidityNoise: number[][];
-  private size: number;
+  private seed: string | number;
+  private randomObj: JavaRandom;
+  private cacheSize: number;
+  private biomeCache: Map<string, BiomeType>;
 
-  constructor(seed: string | number, size: number = 1000) {
-    this.random = new JavaRandom(seed);
-    this.size = size;
-    
-    // Inicializar mapas de ruido de temperatura y humedad
-    this.temperatureNoise = this.generateNoiseMap(size, 8);
-    this.humidityNoise = this.generateNoiseMap(size, 8);
+  constructor(seed: string | number, cacheSize: number = 256) {
+    this.seed = seed;
+    this.randomObj = new JavaRandom(seed);
+    this.cacheSize = cacheSize;
+    this.biomeCache = new Map();
   }
 
-  // Genera un mapa de ruido simple
-  private generateNoiseMap(size: number, octaves: number): number[][] {
-    const noise: number[][] = [];
+  // Método optimizado que usa caché para reducir cálculos repetidos
+  public getBiomeAt(x: number, z: number): BiomeType {
+    const key = `${x},${z}`;
     
-    for (let x = 0; x < size; x++) {
-      noise[x] = [];
-      for (let z = 0; z < size; z++) {
-        // Valor de ruido basado en la semilla y posición
-        let value = 0;
-        let amplitude = 1.0;
-        let frequency = 1.0;
-        
-        for (let i = 0; i < octaves; i++) {
-          const noiseX = this.random.nextFloat() * frequency;
-          const noiseZ = this.random.nextFloat() * frequency;
-          value += this.interpolatedNoise(x * noiseX, z * noiseZ) * amplitude;
-          
-          amplitude *= 0.5;
-          frequency *= 2.0;
-        }
-        
-        noise[x][z] = value;
-      }
+    // Verificar si ya tenemos este bioma en caché
+    if (this.biomeCache.has(key)) {
+      return this.biomeCache.get(key)!;
     }
     
-    return noise;
-  }
-
-  // Ruido interpolado suave
-  private interpolatedNoise(x: number, z: number): number {
-    const intX = Math.floor(x);
-    const intZ = Math.floor(z);
-    const fractX = x - intX;
-    const fractZ = z - intZ;
+    // Si no está en caché, calcularlo
+    const temperature = this.getNoiseValue(x * 0.05, z * 0.05, `${this.seed}_temp`);
+    const humidity = this.getNoiseValue(x * 0.05, z * 0.05 + 1000, `${this.seed}_humidity`);
     
-    const v1 = this.smoothNoise(intX, intZ);
-    const v2 = this.smoothNoise(intX + 1, intZ);
-    const v3 = this.smoothNoise(intX, intZ + 1);
-    const v4 = this.smoothNoise(intX + 1, intZ + 1);
-    
-    const i1 = this.interpolate(v1, v2, fractX);
-    const i2 = this.interpolate(v3, v4, fractX);
-    
-    return this.interpolate(i1, i2, fractZ);
-  }
-
-  // Interpolación cúbica
-  private interpolate(a: number, b: number, x: number): number {
-    const ft = x * Math.PI;
-    const f = (1 - Math.cos(ft)) * 0.5;
-    return a * (1 - f) + b * f;
-  }
-
-  // Ruido suavizado
-  private smoothNoise(x: number, z: number): number {
-    const seed = (x * 13031 + z * 54323) % 10000;
-    this.random.skip(seed);
-    return this.random.nextFloat();
-  }
-
-  // Obtiene el bioma en una coordenada específica
-  public getBiomeAt(x: number, z: number): BiomeType {
-    // Ajustar coordenadas para que estén dentro del mapa de ruido
-    const adjustedX = ((x % this.size) + this.size) % this.size;
-    const adjustedZ = ((z % this.size) + this.size) % this.size;
-    
-    const temperature = this.temperatureNoise[adjustedX][adjustedZ];
-    const humidity = this.humidityNoise[adjustedX][adjustedZ];
+    let biome: BiomeType;
     
     // Determinación del bioma basado en temperatura y humedad
     if (temperature < 0.1) {
-      return 'ice_plains';
+      biome = 'ice_plains';
     } else if (temperature < 0.2) {
-      return 'taiga';
+      biome = 'taiga';
     } else if (temperature < 0.4) {
-      if (humidity > 0.7) return 'swamp';
-      return 'forest';
+      if (humidity > 0.7) biome = 'swamp';
+      else biome = 'forest';
     } else if (temperature < 0.7) {
-      if (humidity < 0.2) return 'desert';
-      if (humidity > 0.5) return 'jungle';
-      return 'plains';
+      if (humidity < 0.2) biome = 'desert';
+      if (humidity > 0.5) biome = 'jungle';
+      else biome = 'plains';
     } else {
-      if (humidity < 0.3) return 'badlands';
-      return 'savanna';
+      if (humidity < 0.3) biome = 'badlands';
+      else biome = 'savanna';
     }
+    
+    // Guardar en caché para reutilizar
+    if (this.biomeCache.size >= this.cacheSize) {
+      // Si la caché está llena, eliminar la primera entrada
+      const firstKey = this.biomeCache.keys().next().value;
+      this.biomeCache.delete(firstKey);
+    }
+    this.biomeCache.set(key, biome);
+    
+    return biome;
+  }
+
+  // Genera un valor de ruido para las coordenadas dadas
+  private getNoiseValue(x: number, z: number, noiseSeed: string): number {
+    const random = new JavaRandom(`${noiseSeed}_${Math.floor(x)}_${Math.floor(z)}`);
+    
+    // Valor base con algo de aleatoriedad
+    const base = random.nextFloat();
+    
+    // Aplicar algoritmo simple de ruido Perlin
+    const corners = this.interpolatedCorners(x, z, noiseSeed);
+    const noise = (base * 0.4) + (corners * 0.6); // Mezcla entre aleatoriedad y coherencia
+    
+    // Normalizar entre 0 y 1
+    return Math.max(0, Math.min(1, noise));
+  }
+  
+  // Cálculo simplificado de ruido por interpolación de esquinas
+  private interpolatedCorners(x: number, z: number, noiseSeed: string): number {
+    const x0 = Math.floor(x);
+    const z0 = Math.floor(z);
+    const x1 = x0 + 1;
+    const z1 = z0 + 1;
+    
+    // Obtener valores de ruido para las cuatro esquinas
+    const n00 = this.cornerNoise(x0, z0, noiseSeed);
+    const n01 = this.cornerNoise(x0, z1, noiseSeed);
+    const n10 = this.cornerNoise(x1, z0, noiseSeed);
+    const n11 = this.cornerNoise(x1, z1, noiseSeed);
+    
+    // Calcular pesos para interpolación
+    const sx = x - x0;
+    const sz = z - z0;
+    
+    // Interpolación bilineal
+    const nx0 = this.lerp(n00, n10, sx);
+    const nx1 = this.lerp(n01, n11, sx);
+    return this.lerp(nx0, nx1, sz);
+  }
+  
+  // Valor de ruido para una esquina
+  private cornerNoise(x: number, z: number, noiseSeed: string): number {
+    const random = new JavaRandom(`${noiseSeed}_corner_${x}_${z}`);
+    return random.nextFloat();
+  }
+  
+  // Interpolación lineal
+  private lerp(a: number, b: number, t: number): number {
+    // Interpolación con suavizado
+    const s = t * t * (3 - 2 * t); // Curva suave S
+    return a + s * (b - a);
   }
 }

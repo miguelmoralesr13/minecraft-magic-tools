@@ -15,6 +15,7 @@ const SeedMap = () => {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [structures, setStructures] = useState<MinecraftStructure[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   const handleFilterChange = (filters: string[]) => {
     setActiveFilters(filters);
@@ -36,30 +37,40 @@ const SeedMap = () => {
     }
   };
 
-  // Generar estructuras basadas en la semilla
+  // Generar estructuras basadas en la semilla con mejor manejo de errores
   const generateStructures = (seed: string, version: "1.16" | "1.20") => {
     setIsLoading(true);
+    setGenerationError(null);
     
-    try {
-      // Simular tiempo de procesamiento
-      setTimeout(() => {
+    // Usamos setTimeout para no bloquear la UI
+    setTimeout(() => {
+      try {
+        console.time('structureGeneration');
         const structureGenerator = new StructureGenerator(seed);
         const allStructures = structureGenerator.getAllStructures();
+        console.timeEnd('structureGeneration');
+        
+        if (allStructures.length === 0) {
+          throw new Error("No se pudieron generar estructuras con esta semilla");
+        }
         
         setStructures(allStructures);
-        setIsLoading(false);
+        setGenerationError(null);
         
         toast.success(`${allStructures.length} estructuras generadas`, {
           description: `Basado en la semilla: ${seed} para Minecraft ${version}`
         });
-      }, 800); // Pequeño retraso para simular el procesamiento
-    } catch (error) {
-      console.error("Error generando estructuras:", error);
-      toast.error("Error generando estructuras", {
-        description: "Hubo un problema al procesar la semilla. Inténtalo de nuevo."
-      });
-      setIsLoading(false);
-    }
+      } catch (error) {
+        console.error("Error generando estructuras:", error);
+        setGenerationError((error as Error).message || "Error desconocido");
+        
+        toast.error("Error generando estructuras", {
+          description: "Hubo un problema al procesar la semilla. Inténtalo con otra semilla."
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }, 100); // Pequeño retraso para permitir que la UI se actualice
   };
 
   // Regenerar estructuras cuando cambia la semilla o la versión
@@ -123,6 +134,13 @@ const SeedMap = () => {
                   version={activeVersion}
                   structures={structures}
                 />
+              )}
+              
+              {generationError && !isLoading && (
+                <div className="mt-4 p-4 bg-destructive/10 text-destructive rounded-md">
+                  <p className="font-medium">Error: {generationError}</p>
+                  <p className="text-sm mt-1">Intenta con otra semilla o versión de Minecraft.</p>
+                </div>
               )}
             </div>
           </div>

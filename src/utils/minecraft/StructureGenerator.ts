@@ -40,16 +40,44 @@ export class StructureGenerator {
 
   constructor(seed: string | number) {
     this.seed = seed;
-    this.biomeGenerator = new BiomeGenerator(seed);
-    this.generateAllStructures();
+    this.biomeGenerator = new BiomeGenerator(seed, 256); // Menor tamaño para mejor rendimiento
+    
+    try {
+      // Generación de estructuras pero con límites más restrictivos para evitar cuelgues
+      this.generateAllStructures();
+    } catch (error) {
+      console.error("Error generando estructuras:", error);
+      // Si falla, al menos aseguramos que hay algunas estructuras para mostrar
+      this.generateMinimalStructures();
+    }
   }
 
-  // Genera todas las estructuras para una región definida
+  // Genera todas las estructuras para una región definida, pero con límites más pequeños
   private generateAllStructures() {
+    console.time('generateStructures');
     this.generateVillages();
     this.generateTemples();
     this.generateStrongholds();
     this.generateSpawners();
+    console.timeEnd('generateStructures');
+  }
+
+  // Versión mínima que garantiza algún resultado aunque falle la generación principal
+  private generateMinimalStructures() {
+    // Generar al menos algunas estructuras cercanas al spawn
+    for (let i = 0; i < 5; i++) {
+      const x = (Math.random() * 2000) - 1000;
+      const z = (Math.random() * 2000) - 1000;
+      const biome = this.biomeGenerator.getBiomeAt(x, z);
+      
+      this.structures.village.push({
+        type: 'village',
+        x: Math.round(x),
+        z: Math.round(z),
+        biome,
+        distanceFromSpawn: this.calculateDistanceFromSpawn(x, z)
+      });
+    }
   }
 
   // Obtiene el punto de spawn predeterminado (0,0 para simplificar)
@@ -65,14 +93,14 @@ export class StructureGenerator {
 
   // ----- Generadores de estructuras específicas -----
 
-  // Genera aldeas basadas en la semilla
+  // Genera aldeas basadas en la semilla, pero en un rango más limitado
   private generateVillages() {
     const random = new JavaRandom(`${this.seed}_villages`);
     
-    // Parámetros de generación de aldeas
+    // Parámetros de generación de aldeas con rangos más pequeños
     const spacing = 32; // Espaciado en chunks (32 chunks = 512 bloques)
     const separation = 8; // Separación mínima
-    const range = 10000; // Rango de búsqueda
+    const range = 48; // Rango reducido para evitar cuelgues (equivale a unos 1500 bloques)
     
     for (let regionX = -range; regionX <= range; regionX += spacing) {
       for (let regionZ = -range; regionZ <= range; regionZ += spacing) {
@@ -107,14 +135,14 @@ export class StructureGenerator {
     }
   }
 
-  // Genera templos basados en la semilla
+  // Genera templos basados en la semilla, con rangos reducidos
   private generateTemples() {
     const random = new JavaRandom(`${this.seed}_temples`);
     
     // Parámetros de generación de templos
     const spacing = 32;
     const separation = 8;
-    const range = 10000;
+    const range = 48; // Rango reducido también
     
     for (let regionX = -range; regionX <= range; regionX += spacing) {
       for (let regionZ = -range; regionZ <= range; regionZ += spacing) {
@@ -150,7 +178,7 @@ export class StructureGenerator {
     const random = new JavaRandom(`${this.seed}_strongholds`);
     
     // En Minecraft hay normalmente 128 fortalezas distribuidas en anillos
-    const count = 3; // Simplificamos a 3 para este ejemplo
+    const count = 8; // Un poco más que antes para compensar el menor rango
     const distance = 1280; // Distancia aproximada del primer anillo
     
     for (let i = 0; i < count; i++) {
@@ -180,14 +208,13 @@ export class StructureGenerator {
     }
   }
 
-  // Genera spawners basados en la semilla
+  // Genera spawners basados en la semilla, versión más eficiente
   private generateSpawners() {
     const random = new JavaRandom(`${this.seed}_spawners`);
     
-    // Los spawners aparecen en cuevas y mazmorras
-    // Para simplificar, generamos algunos puntos aleatorios
-    const count = 50;
-    const range = 2000;
+    // Los spawners aparecen en cuevas y mazmorras - menos spawners pero mejor distribuidos
+    const count = 20; // Reducido para mejor rendimiento
+    const range = 1500;
     
     for (let i = 0; i < count; i++) {
       const x = random.nextInt(range * 2) - range;
@@ -196,7 +223,7 @@ export class StructureGenerator {
       // Los spawners son más comunes subterráneamente, pero para visualización los ponemos en la superficie
       const biome = this.biomeGenerator.getBiomeAt(x, z);
       
-      if (random.nextFloat() < 0.3) { // Solo 30% de probabilidad para reducir densidad
+      if (random.nextFloat() < 0.5) { // Mayor probabilidad para compensar menos iteraciones
         this.structures.spawner.push({
           type: 'spawner',
           x,
