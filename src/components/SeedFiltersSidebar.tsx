@@ -12,7 +12,6 @@ import {
   Home, 
   Skull, 
   Trees, 
-  Mountain, 
   Building,
   Anchor,
   Building2,
@@ -23,13 +22,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { StructureType } from "@/utils/minecraft/StructureGenerator";
+import { getColorForType } from "@/components/map/StructureIcon";
 
 interface SeedFiltersSidebarProps {
   onFilterChange: (filters: string[]) => void;
   onSeedChange: (seed: string) => void;
   version: "bedrock" | "java";
-  onMinecraftVersionChange: (version: "1.16" | "1.20") => void;
-  minecraftVersion: "1.16" | "1.20";
+  onMinecraftVersionChange: (version: "1.16" | "1.18" | "1.20") => void;
+  minecraftVersion: "1.16" | "1.18" | "1.20";
 }
 
 interface FilterOption {
@@ -105,14 +105,22 @@ const SeedFiltersSidebar: React.FC<SeedFiltersSidebarProps> = ({
     const allFilters = filterOptions.map(option => option.id);
     setSelectedFilters(allFilters);
     onFilterChange(allFilters);
+    
+    toast.success("Todos los filtros activados", {
+      description: `Mostrando todos los tipos de estructuras`
+    });
   };
 
   const handleClearAll = () => {
     setSelectedFilters([]);
     onFilterChange([]);
+    
+    toast.info("Filtros desactivados", {
+      description: `Mostrando todas las estructuras sin filtrar`
+    });
   };
 
-  const handleMinecraftVersionChange = (newVersion: "1.16" | "1.20") => {
+  const handleMinecraftVersionChange = (newVersion: "1.16" | "1.18" | "1.20") => {
     onMinecraftVersionChange(newVersion);
     toast.info(`Versión cambiada a ${newVersion}`, {
       description: "La generación de estructuras se ha actualizado"
@@ -161,6 +169,13 @@ const SeedFiltersSidebar: React.FC<SeedFiltersSidebarProps> = ({
             1.16
           </Button>
           <Button 
+            variant={minecraftVersion === "1.18" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => handleMinecraftVersionChange("1.18")}
+          >
+            1.18
+          </Button>
+          <Button 
             variant={minecraftVersion === "1.20" ? "default" : "outline"} 
             size="sm" 
             onClick={() => handleMinecraftVersionChange("1.20")}
@@ -175,7 +190,7 @@ const SeedFiltersSidebar: React.FC<SeedFiltersSidebarProps> = ({
           <h3 className="text-lg font-semibold">Filtros</h3>
           <div className="flex gap-2">
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
               onClick={handleSelectAll}
               className="text-xs"
@@ -183,7 +198,7 @@ const SeedFiltersSidebar: React.FC<SeedFiltersSidebarProps> = ({
               Todos
             </Button>
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
               onClick={handleClearAll}
               className="text-xs"
@@ -193,23 +208,39 @@ const SeedFiltersSidebar: React.FC<SeedFiltersSidebarProps> = ({
           </div>
         </div>
         
-        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-          {filterOptions.map((option) => (
-            <div key={option.id} className="flex items-center space-x-2">
-              <Checkbox 
-                id={option.id} 
-                checked={selectedFilters.includes(option.id)}
-                onCheckedChange={() => handleFilterToggle(option.id)}
-              />
-              <Label 
-                htmlFor={option.id}
-                className="flex items-center gap-2 cursor-pointer"
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-2">
+          {filterOptions.map((option) => {
+            const color = getColorForType(option.id);
+            const isSelected = selectedFilters.includes(option.id);
+            
+            return (
+              <div 
+                key={option.id} 
+                className={`flex items-center space-x-2 p-2 rounded-md transition-colors ${isSelected ? 'bg-accent' : 'hover:bg-accent/50'}`}
+                onClick={() => handleFilterToggle(option.id)}
               >
-                {option.icon}
-                {option.label}
-              </Label>
-            </div>
-          ))}
+                <div className="flex-shrink-0">
+                  <Checkbox 
+                    id={option.id} 
+                    checked={isSelected}
+                    onCheckedChange={() => handleFilterToggle(option.id)}
+                  />
+                </div>
+                <Label 
+                  htmlFor={option.id}
+                  className="flex items-center gap-2 cursor-pointer flex-1"
+                >
+                  <div 
+                    className="w-5 h-5 rounded-full flex items-center justify-center" 
+                    style={{ backgroundColor: color }}
+                  >
+                    {option.icon}
+                  </div>
+                  <span>{option.label}</span>
+                </Label>
+              </div>
+            );
+          })}
         </div>
       </div>
       

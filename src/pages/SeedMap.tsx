@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 const SeedMap = () => {
   const [activeVersion, setActiveVersion] = useState<"bedrock" | "java">("java");
-  const [minecraftVersion, setMinecraftVersion] = useState<"1.16" | "1.20">("1.20");
+  const [minecraftVersion, setMinecraftVersion] = useState<"1.16" | "1.18" | "1.20">("1.20");
   const [activeSeed, setActiveSeed] = useState<string>("");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [structures, setStructures] = useState<MinecraftStructure[]>([]);
@@ -29,7 +29,7 @@ const SeedMap = () => {
     setActiveVersion(version);
   };
 
-  const handleMinecraftVersionChange = (version: "1.16" | "1.20") => {
+  const handleMinecraftVersionChange = (version: "1.16" | "1.18" | "1.20") => {
     setMinecraftVersion(version);
     // Regenerar estructuras si ya hay una semilla
     if (activeSeed) {
@@ -38,7 +38,7 @@ const SeedMap = () => {
   };
 
   // Generar estructuras basadas en la semilla con mejor manejo de errores
-  const generateStructures = (seed: string, version: "1.16" | "1.20") => {
+  const generateStructures = (seed: string, version: "1.16" | "1.18" | "1.20") => {
     setIsLoading(true);
     setGenerationError(null);
     
@@ -46,7 +46,7 @@ const SeedMap = () => {
     setTimeout(() => {
       try {
         console.time('structureGeneration');
-        const structureGenerator = new StructureGenerator(seed);
+        const structureGenerator = new StructureGenerator(seed, version);
         const allStructures = structureGenerator.getAllStructures();
         console.timeEnd('structureGeneration');
         
@@ -125,6 +125,7 @@ const SeedMap = () => {
                   <div className="flex flex-col items-center">
                     <div className="animate-spin h-12 w-12 border-t-2 border-b-2 border-primary rounded-full mb-4"></div>
                     <p className="text-muted-foreground">Generando estructuras...</p>
+                    <p className="text-xs text-muted-foreground mt-2">Esto puede tardar unos segundos para mapas grandes</p>
                   </div>
                 </div>
               ) : (
@@ -133,6 +134,7 @@ const SeedMap = () => {
                   filters={activeFilters}
                   version={activeVersion}
                   structures={structures}
+                  onSeedChange={handleSeedChange}
                 />
               )}
               

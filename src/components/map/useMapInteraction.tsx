@@ -1,4 +1,8 @@
 
+// Este archivo ha sido reemplazado por el store de Zustand en /src/store/mapStore.ts
+// Se mantiene temporalmente para compatibilidad con versiones anteriores
+
+import { useMapStore } from "@/store/mapStore";
 import { useState, useCallback } from "react";
 import { MinecraftStructure } from "@/utils/minecraft/StructureGenerator";
 import { toast } from "sonner";

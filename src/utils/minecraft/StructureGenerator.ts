@@ -1,6 +1,7 @@
 
 import { JavaRandom } from './JavaRandom';
 import { BiomeGenerator, BiomeType } from './BiomeGenerator';
+import { StructureFactoryManager } from './structures/StructureFactoryManager';
 
 export interface MinecraftStructure {
   type: StructureType;
@@ -22,9 +23,12 @@ export type StructureType =
   | 'outpost'
   | 'ruined_portal';
 
+export type MinecraftVersion = '1.16' | '1.18' | '1.20';
+
 export class StructureGenerator {
   private seed: string | number;
   private biomeGenerator: BiomeGenerator;
+  private factoryManager: StructureFactoryManager;
   private structures: Record<StructureType, MinecraftStructure[]> = {
     village: [],
     temple: [],
@@ -37,10 +41,14 @@ export class StructureGenerator {
     outpost: [],
     ruined_portal: []
   };
+  private version: MinecraftVersion;
+  private structureCache: Map<string, MinecraftStructure[]> = new Map();
 
-  constructor(seed: string | number) {
+  constructor(seed: string | number, version: MinecraftVersion = '1.20') {
     this.seed = seed;
+    this.version = version;
     this.biomeGenerator = new BiomeGenerator(seed, 256); // Menor tamaño para mejor rendimiento
+    this.factoryManager = new StructureFactoryManager(seed, this.biomeGenerator, version);
     
     try {
       // Generación de estructuras pero con límites más restrictivos para evitar cuelgues
@@ -55,10 +63,32 @@ export class StructureGenerator {
   // Genera todas las estructuras para una región definida, pero con límites más pequeños
   private generateAllStructures() {
     console.time('generateStructures');
-    this.generateVillages();
-    this.generateTemples();
-    this.generateStrongholds();
-    this.generateSpawners();
+    
+    // Verificar si ya tenemos estructuras en caché para esta semilla y versión
+    const cacheKey = `${this.seed}_${this.version}`;
+    if (this.structureCache.has(cacheKey)) {
+      const cachedStructures = this.structureCache.get(cacheKey);
+      if (cachedStructures) {
+        // Asignar estructuras desde la caché
+        for (const structure of cachedStructures) {
+          this.structures[structure.type].push(structure);
+        }
+        console.timeEnd('generateStructures');
+        return;
+      }
+    }
+    
+    // Usar el gestor de fábricas para generar todas las estructuras
+    const generatedStructures = this.factoryManager.generateAllStructures(48);
+    
+    // Asignar las estructuras generadas a nuestro mapa de estructuras
+    for (const [type, structures] of Object.entries(generatedStructures)) {
+      this.structures[type as StructureType] = structures;
+    }
+    
+    // Guardar en caché para futuras consultas
+    this.structureCache.set(cacheKey, this.getAllStructures());
+    
     console.timeEnd('generateStructures');
   }
 
@@ -91,148 +121,34 @@ export class StructureGenerator {
     return Math.sqrt(Math.pow(x - spawn.x, 2) + Math.pow(z - spawn.z, 2));
   }
 
-  // ----- Generadores de estructuras específicas -----
-
-  // Genera aldeas basadas en la semilla, pero en un rango más limitado
-  private generateVillages() {
-    const random = new JavaRandom(`${this.seed}_villages`);
+  // Genera estructuras por lotes para mejorar el rendimiento
+  public generateStructuresBatch(chunkX: number, chunkZ: number, radius: number): MinecraftStructure[] {
+    const batchKey = `${this.seed}_${this.version}_${chunkX}_${chunkZ}_${radius}`;
     
-    // Parámetros de generación de aldeas con rangos más pequeños
-    const spacing = 32; // Espaciado en chunks (32 chunks = 512 bloques)
-    const separation = 8; // Separación mínima
-    const range = 48; // Rango reducido para evitar cuelgues (equivale a unos 1500 bloques)
-    
-    for (let regionX = -range; regionX <= range; regionX += spacing) {
-      for (let regionZ = -range; regionZ <= range; regionZ += spacing) {
-        // Determinar si hay una aldea en esta región
-        const r = new JavaRandom(`${this.seed}_village_${regionX}_${regionZ}`);
-        
-        // Offset dentro de la región para añadir variabilidad
-        const offsetX = r.nextInt(spacing - separation);
-        const offsetZ = r.nextInt(spacing - separation);
-        
-        const x = regionX + offsetX;
-        const z = regionZ + offsetZ;
-        
-        // Convertir de chunks a bloques (x16)
-        const blockX = x * 16;
-        const blockZ = z * 16;
-        
-        // Verificar si el bioma puede tener aldea
-        const biome = this.biomeGenerator.getBiomeAt(blockX, blockZ);
-        const validBiomes: BiomeType[] = ['plains', 'desert', 'savanna', 'taiga'];
-        
-        if (validBiomes.includes(biome) && r.nextFloat() < 0.5) {
-          this.structures.village.push({
-            type: 'village',
-            x: blockX,
-            z: blockZ,
-            biome,
-            distanceFromSpawn: this.calculateDistanceFromSpawn(blockX, blockZ)
-          });
-        }
-      }
+    // Verificar si ya tenemos este lote en caché
+    if (this.structureCache.has(batchKey)) {
+      return this.structureCache.get(batchKey) || [];
     }
-  }
-
-  // Genera templos basados en la semilla, con rangos reducidos
-  private generateTemples() {
-    const random = new JavaRandom(`${this.seed}_temples`);
     
-    // Parámetros de generación de templos
-    const spacing = 32;
-    const separation = 8;
-    const range = 48; // Rango reducido también
+    // Generar estructuras para este lote
+    const structures: MinecraftStructure[] = [];
+    const startX = chunkX - radius;
+    const startZ = chunkZ - radius;
+    const endX = chunkX + radius;
+    const endZ = chunkZ + radius;
     
-    for (let regionX = -range; regionX <= range; regionX += spacing) {
-      for (let regionZ = -range; regionZ <= range; regionZ += spacing) {
-        const r = new JavaRandom(`${this.seed}_temple_${regionX}_${regionZ}`);
-        
-        const offsetX = r.nextInt(spacing - separation);
-        const offsetZ = r.nextInt(spacing - separation);
-        
-        const x = regionX + offsetX;
-        const z = regionZ + offsetZ;
-        
-        const blockX = x * 16;
-        const blockZ = z * 16;
-        
-        const biome = this.biomeGenerator.getBiomeAt(blockX, blockZ);
-        const validBiomes: BiomeType[] = ['desert', 'jungle', 'plains'];
-        
-        if (validBiomes.includes(biome) && r.nextFloat() < 0.3) {
-          this.structures.temple.push({
-            type: 'temple',
-            x: blockX,
-            z: blockZ,
-            biome,
-            distanceFromSpawn: this.calculateDistanceFromSpawn(blockX, blockZ)
-          });
-        }
-      }
+    // Generar estructuras para cada tipo en el rango especificado
+    for (const type of Object.keys(this.structures) as StructureType[]) {
+      const typeStructures = this.factoryManager.generateStructuresInRange(
+        type, startX, startZ, endX, endZ
+      );
+      structures.push(...typeStructures);
     }
-  }
-
-  // Genera fortalezas basadas en la semilla
-  private generateStrongholds() {
-    const random = new JavaRandom(`${this.seed}_strongholds`);
     
-    // En Minecraft hay normalmente 128 fortalezas distribuidas en anillos
-    const count = 8; // Un poco más que antes para compensar el menor rango
-    const distance = 1280; // Distancia aproximada del primer anillo
+    // Guardar en caché para futuras consultas
+    this.structureCache.set(batchKey, structures);
     
-    for (let i = 0; i < count; i++) {
-      // Ángulo en radianes distribuido uniformemente alrededor del círculo
-      const angle = 2 * Math.PI * (i / count);
-      
-      // Calculamos posición en el círculo
-      const x = Math.floor(Math.cos(angle) * distance);
-      const z = Math.floor(Math.sin(angle) * distance);
-      
-      // Añadir algo de variabilidad
-      const jitterX = random.nextInt(200) - 100;
-      const jitterZ = random.nextInt(200) - 100;
-      
-      const finalX = x + jitterX;
-      const finalZ = z + jitterZ;
-      
-      const biome = this.biomeGenerator.getBiomeAt(finalX, finalZ);
-      
-      this.structures.stronghold.push({
-        type: 'stronghold',
-        x: finalX,
-        z: finalZ,
-        biome,
-        distanceFromSpawn: this.calculateDistanceFromSpawn(finalX, finalZ)
-      });
-    }
-  }
-
-  // Genera spawners basados en la semilla, versión más eficiente
-  private generateSpawners() {
-    const random = new JavaRandom(`${this.seed}_spawners`);
-    
-    // Los spawners aparecen en cuevas y mazmorras - menos spawners pero mejor distribuidos
-    const count = 20; // Reducido para mejor rendimiento
-    const range = 1500;
-    
-    for (let i = 0; i < count; i++) {
-      const x = random.nextInt(range * 2) - range;
-      const z = random.nextInt(range * 2) - range;
-      
-      // Los spawners son más comunes subterráneamente, pero para visualización los ponemos en la superficie
-      const biome = this.biomeGenerator.getBiomeAt(x, z);
-      
-      if (random.nextFloat() < 0.5) { // Mayor probabilidad para compensar menos iteraciones
-        this.structures.spawner.push({
-          type: 'spawner',
-          x,
-          z,
-          biome,
-          distanceFromSpawn: this.calculateDistanceFromSpawn(x, z)
-        });
-      }
-    }
+    return structures;
   }
 
   // ----- Métodos públicos para acceder a las estructuras -----
@@ -276,5 +192,26 @@ export class StructureGenerator {
     }
     
     return closest;
+  }
+
+  // Obtiene la versión actual de Minecraft
+  public getVersion(): MinecraftVersion {
+    return this.version;
+  }
+
+  // Cambia la versión de Minecraft y regenera las estructuras
+  public setVersion(version: MinecraftVersion): void {
+    if (this.version !== version) {
+      this.version = version;
+      this.factoryManager.setVersion(version);
+      
+      // Limpiar estructuras actuales
+      for (const type of Object.keys(this.structures) as StructureType[]) {
+        this.structures[type] = [];
+      }
+      
+      // Regenerar estructuras con la nueva versión
+      this.generateAllStructures();
+    }
   }
 }

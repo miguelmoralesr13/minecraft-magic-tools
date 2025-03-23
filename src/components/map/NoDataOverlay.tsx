@@ -1,15 +1,17 @@
-
 import React from "react";
-import { AlertCircle, Map } from "lucide-react";
+import { AlertCircle, Map, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface NoDataOverlayProps {
   noSeed?: boolean;
   noStructures?: boolean;
+  onRandomSeed?: () => void;
 }
 
 const NoDataOverlay: React.FC<NoDataOverlayProps> = ({ 
   noSeed = false, 
-  noStructures = false 
+  noStructures = false,
+  onRandomSeed
 }) => {
   if (!noSeed && !noStructures) return null;
 
@@ -22,6 +24,16 @@ const NoDataOverlay: React.FC<NoDataOverlayProps> = ({
           <p className="text-muted-foreground text-center max-w-md">
             Ingresa una semilla en el panel de la izquierda para ver qué puedes encontrar en ese mundo.
           </p>
+          {onRandomSeed && (
+            <Button 
+              onClick={onRandomSeed}
+              className="mt-2"
+              variant="outline"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Generar semilla aleatoria
+            </Button>
+          )}
         </>
       ) : (
         <>
