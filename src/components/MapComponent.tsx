@@ -67,6 +67,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ seed, filters, version, str
         onMouseLeave={handleMouseUp}
         onClick={handleCanvasClick}
         onWheel={handleWheel}
+        seed={seed}
       />
     </Card>
   );

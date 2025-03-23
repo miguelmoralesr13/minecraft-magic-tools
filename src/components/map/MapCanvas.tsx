@@ -1,7 +1,7 @@
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { MinecraftStructure } from "@/utils/minecraft/StructureGenerator";
-import { BiomeType, biomeColors } from "@/utils/minecraft/BiomeGenerator";
+import { BiomeType, biomeColors, BiomeGenerator } from "@/utils/minecraft/BiomeGenerator";
 import { getColorForType } from "./StructureIcon";
 
 interface MapCanvasProps {
@@ -17,6 +17,7 @@ interface MapCanvasProps {
   onMouseLeave: () => void;
   onClick: (e: React.MouseEvent) => void;
   onWheel: (e: React.WheelEvent) => void;
+  seed?: string;
 }
 
 const MapCanvas: React.FC<MapCanvasProps> = ({
@@ -31,9 +32,13 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
   onMouseUp,
   onMouseLeave,
   onClick,
-  onWheel
+  onWheel,
+  seed = "minecraft"
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Create a BiomeGenerator instance with the current seed
+  const biomeGenerator = useMemo(() => new BiomeGenerator(seed, 1024), [seed]);
 
   // Draw the map
   useEffect(() => {
@@ -48,10 +53,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     
     // Draw the background according to whether we're showing biomes or not
     if (showBiomes) {
-      // If showing biomes, create a color mosaic effect
+      // Use actual biome data with real BiomeGenerator
       const cellSize = 20 * zoom;
-      const offsetX = position.x % cellSize;
-      const offsetY = position.y % cellSize;
       
       for (let x = 0; x < canvas.width; x += cellSize) {
         for (let y = 0; y < canvas.height; y += cellSize) {
@@ -59,24 +62,11 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
           const worldX = Math.floor((x - position.x - canvas.width/2) / zoom);
           const worldZ = Math.floor((y - position.y - canvas.height/2) / zoom);
           
-          // We simulate biomes for this example (we should actually use BiomeGenerator)
-          // This is just for visualization, not accurate
-          const noiseX = Math.sin(worldX * 0.01) * Math.cos(worldZ * 0.01);
-          const noiseZ = Math.sin(worldZ * 0.02) * Math.cos(worldX * 0.02);
-          const biomeValue = (noiseX + noiseZ + 2) / 4; // Normalized between 0 and 1
-          
-          let biome: BiomeType;
-          if (biomeValue < 0.1) biome = 'ice_plains';
-          else if (biomeValue < 0.3) biome = 'plains';
-          else if (biomeValue < 0.5) biome = 'forest';
-          else if (biomeValue < 0.6) biome = 'desert';
-          else if (biomeValue < 0.7) biome = 'mountains';
-          else if (biomeValue < 0.8) biome = 'jungle';
-          else if (biomeValue < 0.9) biome = 'swamp';
-          else biome = 'ocean';
+          // Get the actual biome at this location using BiomeGenerator
+          const biome = biomeGenerator.getBiomeAt(worldX, worldZ);
           
           ctx.fillStyle = biomeColors[biome];
-          ctx.fillRect(x + offsetX, y + offsetY, cellSize, cellSize);
+          ctx.fillRect(x, y, cellSize, cellSize);
         }
       }
     } else {
@@ -149,7 +139,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
       }
     });
     
-  }, [structures, position, zoom, selectedStructure, filters, showBiomes]);
+  }, [structures, position, zoom, selectedStructure, filters, showBiomes, biomeGenerator]);
 
   return (
     <canvas
