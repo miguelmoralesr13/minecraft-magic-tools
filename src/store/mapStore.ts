@@ -1,6 +1,13 @@
 import { create } from 'zustand';
-import { MinecraftStructure } from '@/utils/minecraft/StructureGenerator';
 import { toast } from 'sonner';
+
+export interface MinecraftStructure {
+  type: string;
+  x: number;
+  z: number;
+  biome: number;
+  distanceFromSpawn: number;
+}
 
 interface MapState {
   // Estado del mapa

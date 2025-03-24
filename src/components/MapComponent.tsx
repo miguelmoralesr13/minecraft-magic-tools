@@ -12,16 +12,16 @@ import { Search, Compass, ZoomIn, ZoomOut, Layers } from "lucide-react";
 import SeedMapCanvas from "./SeedMapCanvas";
 
 const structureTypes = [
-  { id: "village", label: "Aldeas", icon: "/public/icons/village.svg" },
-  { id: "temple", label: "Templos", icon: "/public/icons/temple.svg" },
-  { id: "stronghold", label: "Fortalezas", icon: "/public/icons/stronghold.svg" },
-  { id: "monument", label: "Monumentos", icon: "/public/icons/monument.svg" },
-  { id: "mansion", label: "Mansiones", icon: "/public/icons/mansion.svg" },
-  { id: "mineshaft", label: "Minas", icon: "/public/icons/mineshaft.svg" },
-  { id: "fortress", label: "Fortalezas del Nether", icon: "/public/icons/fortress.svg" },
-  { id: "spawner", label: "Generadores", icon: "/public/icons/spawner.svg" },
-  { id: "outpost", label: "Puestos de Avanzada", icon: "/public/icons/outpost.svg" },
-  { id: "ruined_portal", label: "Portales en Ruinas", icon: "/public/icons/ruined_portal.svg" },
+  { id: "village", label: "Aldeas", icon: "/icons/village.svg" },
+  { id: "temple", label: "Templos", icon: "/icons/temple.svg" },
+  { id: "stronghold", label: "Fortalezas", icon: "/icons/stronghold.svg" },
+  { id: "monument", label: "Monumentos", icon: "/icons/monument.svg" },
+  { id: "mansion", label: "Mansiones", icon: "/icons/mansion.svg" },
+  { id: "mineshaft", label: "Minas", icon: "/icons/mineshaft.svg" },
+  { id: "fortress", label: "Fortalezas del Nether", icon: "/icons/fortress.svg" },
+  { id: "spawner", label: "Generadores", icon: "/icons/spawner.svg" },
+  { id: "outpost", label: "Puestos de Avanzada", icon: "/icons/outpost.svg" },
+  { id: "ruined_portal", label: "Portales en Ruinas", icon: "/icons/ruined_portal.svg" },
 ];
 
 const MapComponent: React.FC = () => {
@@ -48,6 +48,18 @@ const MapComponent: React.FC = () => {
         ? prev.filter(id => id !== structureId)
         : [...prev, structureId]
     );
+  };
+
+  // Function to handle zoom in
+  const handleZoomIn = () => {
+    const newZoom = Math.min(zoom + 0.1, 2);
+    setZoom(newZoom);
+  };
+
+  // Function to handle zoom out
+  const handleZoomOut = () => {
+    const newZoom = Math.max(zoom - 0.1, 0.5);
+    setZoom(newZoom);
   };
 
   return (
@@ -121,14 +133,14 @@ const MapComponent: React.FC = () => {
             <Button 
               variant="outline" 
               size="icon" 
-              onClick={() => setZoom(prev => Math.min(prev + 0.1, 2))}
+              onClick={handleZoomIn}
             >
               <ZoomIn className="h-4 w-4" />
             </Button>
             <Button 
               variant="outline" 
               size="icon" 
-              onClick={() => setZoom(prev => Math.max(prev - 0.1, 0.5))}
+              onClick={handleZoomOut}
             >
               <ZoomOut className="h-4 w-4" />
             </Button>

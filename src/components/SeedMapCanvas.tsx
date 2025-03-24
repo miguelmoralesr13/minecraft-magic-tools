@@ -1,8 +1,8 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useMapStore } from '@/store/mapStore';
 import { toast } from 'sonner';
 import CubiomesModule from '../../wasm/cubiomes/build/cubiomes.js';
+import type { MinecraftStructure } from '@/store/mapStore';
 
 // Definición de colores para los biomas
 const biomeColors: Record<number, string> = {
@@ -43,15 +43,6 @@ const biomeNames: Record<number, string> = {
   14: 'Llanuras Heladas',
   15: 'Isla de Hongos',
 };
-
-// Definición de tipos de estructuras
-export interface MinecraftStructure {
-  type: string;
-  x: number;
-  z: number;
-  biome: number;
-  distanceFromSpawn: number;
-}
 
 interface SeedMapCanvasProps {
   seed: string;
@@ -443,3 +434,4 @@ const SeedMapCanvas: React.FC<SeedMapCanvasProps> = ({
 };
 
 export default SeedMapCanvas;
+
