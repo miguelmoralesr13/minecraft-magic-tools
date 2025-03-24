@@ -1,13 +1,10 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
+import MapComponent from "@/components/MapComponent";
 
 const SeedMap = () => {
-
-
- 
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -21,7 +18,7 @@ const SeedMap = () => {
             Explora qué estructuras puedes encontrar en una semilla de Minecraft, similar a Chunkbase.
           </p>
 
-
+          <MapComponent />
         </motion.div>
       </div>
     </Layout>
