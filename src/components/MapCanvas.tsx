@@ -3,6 +3,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useCanvasControls } from '@/hooks/useCanvasControls';
 import CubiomesModule from '../../wasm/cubiomes/build/cubiomes.js';
 import { toast } from 'sonner';
+import StructureMarkers from './StructureMarkers';
+import { MinecraftStructure } from '@/store/mapStore';
 
 // Colores por bioma - paleta mejorada
 const biomeColors: Record<number, string> = {
@@ -51,6 +53,7 @@ interface MapCanvasProps {
   width?: number;
   height?: number;
   onSelectBiome?: (biome: number, coords: { x: number, z: number }) => void;
+  onSelectStructure?: (structure: MinecraftStructure) => void;
 }
 
 const MapCanvas: React.FC<MapCanvasProps> = ({
@@ -59,13 +62,16 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
   activeFilters,
   width = 800,
   height = 600,
-  onSelectBiome
+  onSelectBiome,
+  onSelectStructure
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cubiomesModule, setCubiomesModule] = useState<any>(null);
   const [hoveredBiome, setHoveredBiome] = useState<number | null>(null);
   const [hoveredCoords, setHoveredCoords] = useState<{x: number, z: number} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+  const [selectedStructure, setSelectedStructure] = useState<MinecraftStructure | null>(null);
   
   // Usar el hook personalizado para controles del canvas
   const {
@@ -132,6 +138,14 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     }
   };
 
+  // Handle structure selection
+  const handleStructureSelect = (structure: MinecraftStructure) => {
+    setSelectedStructure(structure);
+    if (onSelectStructure) {
+      onSelectStructure(structure);
+    }
+  };
+
   // Renderizar el mapa
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -147,6 +161,9 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
       // Dimensiones del canvas
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
+      
+      // Update canvas size state
+      setCanvasSize({ width: canvasWidth, height: canvasHeight });
       
       // Limpiar el canvas
       ctx.fillStyle = '#f5f5f5';
@@ -329,6 +346,18 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
+      />
+      
+      {/* Overlay for structure markers */}
+      <StructureMarkers
+        seed={seed}
+        version={version}
+        activeStructures={activeFilters}
+        position={position}
+        zoom={zoom}
+        canvasWidth={canvasSize.width}
+        canvasHeight={canvasSize.height}
+        onSelectStructure={handleStructureSelect}
       />
       
       {isLoading && (

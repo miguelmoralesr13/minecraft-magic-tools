@@ -19,6 +19,7 @@ interface CanvasControls {
   zoomIn: () => void;
   zoomOut: () => void;
   resetView: () => void;
+  centerOn: (worldX: number, worldZ: number, canvasWidth: number, canvasHeight: number) => void;
   handleWheel: (e: React.WheelEvent) => void;
 }
 
@@ -76,6 +77,19 @@ export function useCanvasControls({
     setZoom(initialZoom);
   }, [initialZoom]);
 
+  // New function to center the view on a specific world coordinate
+  const centerOn = useCallback((worldX: number, worldZ: number, canvasWidth: number, canvasHeight: number) => {
+    // Calculate the canvas position needed to center on the world coordinates
+    const chunkSize = 16 * zoom;
+    const targetCanvasX = -(worldX / 16) * chunkSize + canvasWidth / 2;
+    const targetCanvasY = -(worldZ / 16) * chunkSize + canvasHeight / 2;
+    
+    setPosition({
+      x: targetCanvasX,
+      y: targetCanvasY
+    });
+  }, [zoom]);
+
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
@@ -92,6 +106,7 @@ export function useCanvasControls({
     zoomIn,
     zoomOut,
     resetView,
+    centerOn,
     handleWheel
   };
 }

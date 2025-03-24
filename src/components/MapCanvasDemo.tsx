@@ -5,14 +5,20 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Search, ZoomIn, ZoomOut, RotateCcw, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import MapCanvas from './MapCanvas';
+import StructuresList from './StructuresList';
+import { MinecraftStructure } from '@/store/mapStore';
 
 const MapCanvasDemo: React.FC = () => {
   const [seed, setSeed] = useState<string>("1234");
   const [version, setVersion] = useState<string>("1.20");
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [activeFilters, setActiveFilters] = useState<string[]>(["village", "temple", "stronghold"]);
+  const [showBiomes, setShowBiomes] = useState<boolean>(true);
+  const [structures, setStructures] = useState<MinecraftStructure[]>([]);
+  const [selectedStructure, setSelectedStructure] = useState<MinecraftStructure | null>(null);
+  const [showStructuresList, setShowStructuresList] = useState<boolean>(false);
 
   const handleSeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSeed(e.target.value);
@@ -30,6 +36,21 @@ const MapCanvasDemo: React.FC = () => {
     toast.info(`Bioma seleccionado (${biome})`, {
       description: `En las coordenadas X: ${coords.x}, Z: ${coords.z}`
     });
+  };
+
+  const handleStructureSelect = (structure: MinecraftStructure) => {
+    setSelectedStructure(structure);
+    toast.info(`Estructura seleccionada: ${structure.type}`, {
+      description: `En las coordenadas X: ${structure.x}, Z: ${structure.z}`
+    });
+  };
+
+  const toggleStructuresList = () => {
+    setShowStructuresList(!showStructuresList);
+  };
+
+  const toggleBiomes = () => {
+    setShowBiomes(!showBiomes);
   };
 
   return (
@@ -63,28 +84,59 @@ const MapCanvasDemo: React.FC = () => {
               <TabsTrigger value="1.20">1.20</TabsTrigger>
             </TabsList>
           </Tabs>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={toggleStructuresList}
+          >
+            {showStructuresList ? 'Ocultar Lista' : 'Mostrar Estructuras'}
+          </Button>
         </div>
       </div>
       
-      <div className="relative h-[calc(100%-70px)]">
-        <MapCanvas 
-          seed={seed}
-          version={version}
-          activeFilters={activeFilters}
-          onSelectBiome={handleBiomeSelect}
-        />
-        
-        <div className="absolute top-4 right-4 flex gap-2">
-          <Button variant="outline" size="icon">
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon">
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon">
-            <RotateCcw className="h-4 w-4" />
-          </Button>
+      <div className="relative h-[calc(100%-70px)] flex">
+        {/* Main map area */}
+        <div className={`relative ${showStructuresList ? 'w-2/3' : 'w-full'} h-full transition-all duration-300`}>
+          <MapCanvas 
+            seed={seed}
+            version={version}
+            activeFilters={activeFilters}
+            onSelectBiome={handleBiomeSelect}
+            onSelectStructure={handleStructureSelect}
+          />
+          
+          <div className="absolute top-4 right-4 flex gap-2">
+            <Button variant="outline" size="icon">
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon">
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon">
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant={showBiomes ? "default" : "outline"} 
+              size="icon"
+              onClick={toggleBiomes}
+            >
+              <Layers className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
+        
+        {/* Structures list sidebar */}
+        {showStructuresList && (
+          <div className="w-1/3 h-full border-l bg-background p-4 overflow-auto">
+            <h3 className="font-medium mb-4">Estructuras Encontradas</h3>
+            <StructuresList 
+              structures={structures}
+              selectedStructure={selectedStructure}
+              onStructureSelect={handleStructureSelect}
+            />
+          </div>
+        )}
       </div>
     </Card>
   );
