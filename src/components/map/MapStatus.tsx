@@ -52,16 +52,9 @@ const MapStatus: React.FC = () => {
         <div className="pt-1 border-t border-border mt-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">Zoom:</span>
-              <span className="font-medium">{(zoom * 100).toFixed(0)}%</span>
-            </div>
-            <div className="flex items-center gap-1">
               <span className="text-muted-foreground">Distancia al spawn:</span>
               <span className="font-medium">{distanceFromSpawn} bloques</span>
             </div>
-          </div>
-          <div className="text-muted-foreground text-[10px] mt-1">
-            Escala: 1px = {(16 / zoom).toFixed(1)} bloques
           </div>
         </div>
       </div>

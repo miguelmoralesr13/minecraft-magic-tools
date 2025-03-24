@@ -100,9 +100,6 @@ const MapCanvas: React.FC<MapCanvasProps> = ({ structures = [], filters = [] }) 
         if (visibleStructures.length > 0) {
           drawStructures(ctx, canvas.width, canvas.height, visibleStructures);
         }
-        
-        // Dibujar indicador de coordenadas
-        drawCoordinatesIndicator(ctx, canvas.width, canvas.height);
       } finally {
         setIsRendering(false);
       }
@@ -305,31 +302,31 @@ const MapCanvas: React.FC<MapCanvasProps> = ({ structures = [], filters = [] }) 
       ctx.fillStyle = "#6b7280";
       ctx.textAlign = "left";
       
-      for (let x = Math.floor(startX / regionSize) * regionSize; x < width; x += regionSize) {
-        for (let y = Math.floor(startY / regionSize) * regionSize; y < height; y += regionSize) {
-          const worldX = Math.floor(((x - centerX) / zoom) * 16 / 256);
-          const worldZ = Math.floor(((y - centerY) / zoom) * 16 / 256);
+      // for (let x = Math.floor(startX / regionSize) * regionSize; x < width; x += regionSize) {
+      //   for (let y = Math.floor(startY / regionSize) * regionSize; y < height; y += regionSize) {
+      //     const worldX = Math.floor(((x - centerX) / zoom) * 16 / 256);
+      //     const worldZ = Math.floor(((y - centerY) / zoom) * 16 / 256);
           
-          // Dibujar un rectángulo semitransparente para la región
-          ctx.fillStyle = "rgba(229, 231, 235, 0.2)";
-          ctx.fillRect(x, y, regionSize, regionSize);
+      //     // Dibujar un rectángulo semitransparente para la región
+      //     ctx.fillStyle = "rgba(229, 231, 235, 0.2)";
+      //     ctx.fillRect(x, y, regionSize, regionSize);
           
-          // Dibujar borde de región
-          ctx.strokeStyle = "rgba(107, 114, 128, 0.3)";
-          ctx.lineWidth = 1;
-          ctx.strokeRect(x, y, regionSize, regionSize);
+      //     // Dibujar borde de región
+      //     ctx.strokeStyle = "rgba(107, 114, 128, 0.3)";
+      //     ctx.lineWidth = 1;
+      //     ctx.strokeRect(x, y, regionSize, regionSize);
           
-          // Dibujar etiqueta de región con fondo
-          const regionText = `r.${worldX},${worldZ}`;
-          const textWidth = ctx.measureText(regionText).width;
+      //     // Dibujar etiqueta de región con fondo
+      //     const regionText = `r.${worldX},${worldZ}`;
+      //     const textWidth = ctx.measureText(regionText).width;
           
-          ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-          ctx.fillRect(x + 2, y + 2, textWidth + 6, 12 * zoom);
+      //     ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+      //     ctx.fillRect(x + 2, y + 2, textWidth + 6, 12 * zoom);
           
-          ctx.fillStyle = "#6b7280";
-          ctx.fillText(regionText, x + 5, y + 10 * zoom);
-        }
-      }
+      //     ctx.fillStyle = "#6b7280";
+      //     ctx.fillText(regionText, x + 5, y + 10 * zoom);
+      //   }
+      // }
     }
     
     // Dibujar indicadores de escala en la esquina inferior derecha con diseño mejorado
@@ -605,101 +602,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({ structures = [], filters = [] }) 
     });
   };
   
-  // Función para dibujar el indicador de coordenadas
-  const drawCoordinatesIndicator = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    const centerX = width / 2 + position.x;
-    const centerY = height / 2 + position.y;
-    
-    // Calcular coordenadas del centro de la pantalla en bloques
-    const worldX = Math.floor(((width/2 - centerX) / zoom) * 16);
-    const worldZ = Math.floor(((height/2 - centerY) / zoom) * 16);
-    
-    // Calcular coordenadas en chunks
-    const chunkX = Math.floor(worldX / 16);
-    const chunkZ = Math.floor(worldZ / 16);
-    
-    // Calcular región
-    const regionX = Math.floor(chunkX / 32);
-    const regionZ = Math.floor(chunkZ / 32);
-    
-    // Calcular la escala actual (1px = N bloques)
-    const pixelToBlockRatio = 16 / zoom;
-    const zoomPercentage = Math.round(zoom * 100);
-    
-    // Crear panel de información con diseño mejorado
-    const panelWidth = 240;
-    const panelHeight = 120;
-    const panelX = 10;
-    const panelY = height - panelHeight - 10;
-    
-    // Dibujar fondo del panel con borde redondeado
-    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
-    ctx.beginPath();
-    ctx.roundRect(panelX, panelY, panelWidth, panelHeight, 8);
-    ctx.fill();
-    
-    // Borde del panel
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    
-    // Dibujar título del panel
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 14px Arial";
-    ctx.textAlign = "left";
-    ctx.fillText("Información de Coordenadas", panelX + 12, panelY + 22);
-    
-    // Dibujar línea separadora
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-    ctx.beginPath();
-    ctx.moveTo(panelX + 12, panelY + 30);
-    ctx.lineTo(panelX + panelWidth - 12, panelY + 30);
-    ctx.stroke();
-    
-    // Dibujar información de coordenadas con iconos
-    ctx.font = "12px Arial";
-    
-    // Coordenadas en bloques
-    ctx.fillStyle = "#3b82f6"; // Azul para X
-    ctx.fillText("X:", panelX + 15, panelY + 50);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(`${worldX}`, panelX + 35, panelY + 50);
-    
-    ctx.fillStyle = "#ef4444"; // Rojo para Z
-    ctx.fillText("Z:", panelX + 120, panelY + 50);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(`${worldZ}`, panelX + 140, panelY + 50);
-    
-    // Etiqueta de bloques
-    ctx.fillStyle = "#9ca3af";
-    ctx.font = "10px Arial";
-    ctx.fillText("(bloques)", panelX + 180, panelY + 50);
-    
-    // Coordenadas en chunks
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "12px Arial";
-    ctx.fillText(`Chunks: X: ${chunkX}, Z: ${chunkZ}`, panelX + 15, panelY + 70);
-    
-    // Coordenadas de región
-    ctx.fillText(`Región: r.${regionX}.${regionZ}.mca`, panelX + 15, panelY + 90);
-    
-    // Dibujar información de escala con diseño mejorado
-    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-    ctx.beginPath();
-    ctx.moveTo(panelX + 12, panelY + 98);
-    ctx.lineTo(panelX + panelWidth - 12, panelY + 98);
-    ctx.stroke();
-    
-    // Información de zoom y escala
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 12px Arial";
-    ctx.fillText(`Zoom: ${zoomPercentage}%`, panelX + 15, panelY + 115);
-    
-    // Escala en píxeles a bloques
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "12px Arial";
-    ctx.fillText(`1px = ${pixelToBlockRatio.toFixed(1)} bloques`, panelX + 120, panelY + 115);
-  };
+  // Efecto para calcular las estructuras visibles cuando cambian las dependencias
   
   // Efecto para calcular las estructuras visibles cuando cambian las dependencias
   useEffect(() => {
@@ -746,7 +649,11 @@ const MapCanvas: React.FC<MapCanvasProps> = ({ structures = [], filters = [] }) 
         ref={canvasRef}
         className="w-full h-full cursor-grab active:cursor-grabbing"
         onClick={(e) => handleCanvasClick(e, structures, filters)}
-        onWheel={handleWheel}
+        onScroll={(e) => e.preventDefault()}
+        onWheel={(e) => {
+          e.preventDefault(); // Prevenir el scroll de la página
+          handleWheel(e);
+        }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
