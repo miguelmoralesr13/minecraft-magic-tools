@@ -434,4 +434,3 @@ const SeedMapCanvas: React.FC<SeedMapCanvasProps> = ({
 };
 
 export default SeedMapCanvas;
-

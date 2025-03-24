@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { toast } from 'sonner';
 
@@ -18,6 +19,11 @@ interface MapState {
   selectedStructure: MinecraftStructure | null;
   showBiomes: boolean;
   
+  // Configuraciones
+  seed: string;
+  version: string;
+  activeStructures: string[];
+  
   // Acciones
   setPosition: (position: { x: number; y: number }) => void;
   setZoom: (zoom: number) => void;
@@ -25,6 +31,9 @@ interface MapState {
   setStartDragPosition: (position: { x: number; y: number }) => void;
   setSelectedStructure: (structure: MinecraftStructure | null) => void;
   setShowBiomes: (show: boolean) => void;
+  setSeed: (seed: string) => void;
+  setVersion: (version: string) => void;
+  toggleStructure: (structureId: string) => void;
   
   // Funciones de interacción
   handleCanvasClick: (e: React.MouseEvent, structures: MinecraftStructure[], filters: string[]) => void;
@@ -45,6 +54,11 @@ export const useMapStore = create<MapState>((set, get) => ({
   selectedStructure: null,
   showBiomes: false,
   
+  // Configuraciones
+  seed: "1234",
+  version: "1.20",
+  activeStructures: ["village", "temple", "stronghold"],
+  
   // Setters
   setPosition: (position) => set({ position }),
   setZoom: (zoom) => set({ zoom }),
@@ -52,6 +66,14 @@ export const useMapStore = create<MapState>((set, get) => ({
   setStartDragPosition: (startDragPosition) => set({ startDragPosition }),
   setSelectedStructure: (selectedStructure) => set({ selectedStructure }),
   setShowBiomes: (showBiomes) => set({ showBiomes }),
+  setSeed: (seed) => set({ seed }),
+  setVersion: (version) => set({ version }),
+  
+  toggleStructure: (structureId) => set((state) => ({ 
+    activeStructures: state.activeStructures.includes(structureId)
+      ? state.activeStructures.filter(id => id !== structureId)
+      : [...state.activeStructures, structureId]
+  })),
   
   // Funciones de interacción
   handleCanvasClick: (e, structures, filters) => {
