@@ -13,7 +13,6 @@ const MapComponent: React.FC = () => {
   const { 
     seed, 
     version,
-
     activeStructures, 
     zoom, 
     showBiomes,
