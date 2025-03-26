@@ -1,3 +1,4 @@
+
 import React from "react";
 import UtilityCard from "./UtilityCard";
 import { NetherPortal } from "../data/minecraftData";
@@ -40,6 +41,7 @@ const UtilitiesGrid: React.FC<UtilitiesGridProps> = ({ utilities, version }) => 
             title="Calculadora de Portales"
             description="Convierte coordenadas entre el Overworld y el Nether para facilitar la construcción de portales."
             icon={<NetherPortal />}
+            color="#6366f1" // Added a color (Indigo-500)
             link="/calculadora-portales"
           />
         </div>
