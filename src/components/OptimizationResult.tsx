@@ -1,9 +1,11 @@
+
 import React from "react";
 import { Book, Sword, Pickaxe, Shield, Axe, HardHat, Shirt, Bot, Cast, Plus, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { OptimizationStep, EnchantmentWithLevel } from "./EnchantmentOptimizer";
+import { EnchantmentWithLevel, OptimizationStep } from "./types/enchantments";
+import { getRomanNumeral } from "@/utils/enchantmentOptimizer";
 
 interface OptimizationResultProps {
   steps: OptimizationStep[];
@@ -14,12 +16,6 @@ const OptimizationResult: React.FC<OptimizationResultProps> = ({
   steps, 
   totalExperience 
 }) => {
-  // Helper to convert numbers to Roman numerals
-  const getRomanNumeral = (num: number): string => {
-    const romanNumerals = ["I", "II", "III", "IV", "V"];
-    return romanNumerals[num - 1] || num.toString();
-  };
-
   // Get the appropriate icon for an item type
   const getItemIcon = (type: string) => {
     switch (type) {
