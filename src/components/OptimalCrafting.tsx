@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CraftingItem, OptimalCraftingResult, CraftingMaterial } from "@/types/craftingTypes";
+import { CraftingItem, OptimalCraftingResult } from "@/types/craftingTypes";
 import { craftableItems, calculateOptimalCrafting } from "@/data/craftingData";
 import CraftingResult from "./CraftingResult";
 import { ScrollArea } from "@/components/ui/scroll-area";
