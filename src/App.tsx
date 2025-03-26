@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import ItemComparator from "./pages/ItemComparator";
 import SeedMap from "./pages/SeedMap";
 import PortalCalculatorPage from "./pages/PortalCalculator";
+import OptimalCraftingPage from "./pages/OptimalCrafting";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +27,7 @@ function App() {
               <Route path="/comparador-items" element={<ItemComparator />} />
               <Route path="/mapa-semillas" element={<SeedMap />} />
               <Route path="/calculadora-portales" element={<PortalCalculatorPage />} />
+              <Route path="/crafteos-optimos" element={<OptimalCraftingPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AnimatePresence>
