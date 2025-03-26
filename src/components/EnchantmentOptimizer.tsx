@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Book, Sword, Pickaxe, Shield, Axe, HardHat, Shirt, Pants, Boot, Fishing } from "lucide-react";
+import { Book, Sword, Pickaxe, Shield, Axe, HardHat, Shirt, Bot, Cast } from "lucide-react";
 import { toast } from "sonner";
 import EnchantmentsList from "./EnchantmentsList";
 import OptimizationResult from "./OptimizationResult";
@@ -46,15 +45,12 @@ const EnchantmentOptimizer: React.FC = () => {
   const [optimizationResults, setOptimizationResults] = useState<OptimizationStep[]>([]);
   const [totalExperience, setTotalExperience] = useState<number>(0);
 
-  // Filter enchantments based on selected item
   const availableEnchantments = enchantments.filter(
     (enchantment) => enchantment.targetItems.includes(selectedItem)
   );
 
-  // Handler for item selection
   const handleItemSelect = (value: string) => {
     setSelectedItem(value);
-    // Clear previously selected enchantments that aren't compatible with new item
     setSelectedEnchantments(prevEnchantments => 
       prevEnchantments.filter(e => 
         enchantments.find(ench => ench.id === e.enchantment.id)?.targetItems.includes(value)
@@ -62,25 +58,20 @@ const EnchantmentOptimizer: React.FC = () => {
     );
   };
 
-  // Handler for enchantment selection toggle
   const toggleEnchantment = (enchantment: Enchantment, level: number) => {
     setSelectedEnchantments(prev => {
-      // Check if this enchantment is already selected
       const existingIndex = prev.findIndex(e => e.enchantment.id === enchantment.id);
       
       if (existingIndex >= 0) {
-        // If same level, remove it
         if (prev[existingIndex].level === level) {
           const updated = prev.filter(e => e.enchantment.id !== enchantment.id);
           return updated;
         }
-        // If different level, update it
         const updated = [...prev];
         updated[existingIndex] = { enchantment, level };
         return updated;
       }
       
-      // Check for conflicts
       const hasConflict = prev.some(e => 
         enchantment.conflicts.includes(e.enchantment.id)
       );
@@ -90,12 +81,10 @@ const EnchantmentOptimizer: React.FC = () => {
         return prev;
       }
       
-      // Add new enchantment
       return [...prev, { enchantment, level }];
     });
   };
 
-  // Optimize enchantments - now runs automatically when selectedEnchantments changes
   useEffect(() => {
     if (selectedEnchantments.length === 0) {
       setOptimizationResults([]);
@@ -103,21 +92,18 @@ const EnchantmentOptimizer: React.FC = () => {
       return;
     }
 
-    // This is a simplified algorithm - in reality, this would be more complex
     const steps: OptimizationStep[] = [];
     let totalCost = 0;
     
-    // For demonstration, we'll create a simple linear application of enchantments
     let currentItem = {
       type: selectedItem,
       enchantments: []
     };
     
-    // Sort enchantments by level (higher levels first)
     const sortedEnchantments = [...selectedEnchantments].sort((a, b) => b.level - a.level);
     
     for (const enchWithLevel of sortedEnchantments) {
-      const enchantmentCost = 2 * enchWithLevel.level + 1; // Simple cost model
+      const enchantmentCost = 2 * enchWithLevel.level + 1;
       
       const step: OptimizationStep = {
         firstItem: { ...currentItem, enchantments: [...currentItem.enchantments] },
@@ -141,7 +127,6 @@ const EnchantmentOptimizer: React.FC = () => {
     setTotalExperience(totalCost);
   }, [selectedEnchantments, selectedItem]);
 
-  // Icon based on item type
   const getItemIcon = () => {
     switch (selectedItem) {
       case "sword": return <Sword className="h-5 w-5" />;
@@ -150,9 +135,9 @@ const EnchantmentOptimizer: React.FC = () => {
       case "axe": return <Axe className="h-5 w-5" />;
       case "helmet": return <HardHat className="h-5 w-5" />;
       case "chestplate": return <Shirt className="h-5 w-5" />;
-      case "leggings": return <Pants className="h-5 w-5" />;
-      case "boots": return <Boot className="h-5 w-5" />;
-      case "fishing_rod": return <Fishing className="h-5 w-5" />;
+      case "leggings": return <Bot className="h-5 w-5" />;
+      case "boots": return <Bot className="h-5 w-5" />;
+      case "fishing_rod": return <Cast className="h-5 w-5" />;
       default: return <Sword className="h-5 w-5" />;
     }
   };
@@ -179,9 +164,9 @@ const EnchantmentOptimizer: React.FC = () => {
                       {item.id === "axe" && <Axe className="h-4 w-4" />}
                       {item.id === "helmet" && <HardHat className="h-4 w-4" />}
                       {item.id === "chestplate" && <Shirt className="h-4 w-4" />}
-                      {item.id === "leggings" && <Pants className="h-4 w-4" />}
-                      {item.id === "boots" && <Boot className="h-4 w-4" />}
-                      {item.id === "fishing_rod" && <Fishing className="h-4 w-4" />}
+                      {item.id === "leggings" && <Bot className="h-4 w-4" />}
+                      {item.id === "boots" && <Bot className="h-4 w-4" />}
+                      {item.id === "fishing_rod" && <Cast className="h-4 w-4" />}
                       {item.name}
                     </div>
                   </SelectItem>
@@ -248,7 +233,6 @@ const EnchantmentOptimizer: React.FC = () => {
   );
 };
 
-// Helper to convert numbers to Roman numerals
 function getRomanNumeral(num: number): string {
   const romanNumerals = ["I", "II", "III", "IV", "V"];
   return romanNumerals[num - 1] || num.toString();
