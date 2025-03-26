@@ -4,7 +4,7 @@ import { Book, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Enchantment, EnchantmentWithLevel } from "./EnchantmentOptimizer";
+import { Enchantment, EnchantmentWithLevel } from "./types/enchantments";
 
 interface EnchantmentsListProps {
   enchantments: Enchantment[];
