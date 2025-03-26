@@ -2,7 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
-import MapComponent from "@/components/MapComponent";
+import EnchantmentOptimizer from "@/components/EnchantmentOptimizer";
 
 const SeedMap = () => {
   return (
@@ -13,12 +13,12 @@ const SeedMap = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl font-bold mb-6 text-center">Explorador de Semillas</h1>
+          <h1 className="text-4xl font-bold mb-6 text-center">Optimizador de Encantamientos</h1>
           <p className="text-center text-muted-foreground mb-8">
-            Explora qué estructuras puedes encontrar en una semilla de Minecraft, similar a Chunkbase.
+            Encuentra la combinación óptima para aplicar encantamientos con el menor costo de experiencia.
           </p>
 
-          <MapComponent />
+          <EnchantmentOptimizer />
         </motion.div>
       </div>
     </Layout>
