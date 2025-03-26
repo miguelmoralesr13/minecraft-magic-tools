@@ -1,5 +1,4 @@
-
-import { CraftingItem, CraftingRecipe } from "../types/craftingTypes";
+import { CraftingItem, CraftingRecipe, CraftingMaterial, OptimalCraftingResult, CraftingStep } from "../types/craftingTypes";
 
 // Basic Materials
 export const basicMaterials = [
