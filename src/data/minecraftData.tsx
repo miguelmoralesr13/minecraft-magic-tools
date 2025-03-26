@@ -144,3 +144,22 @@ export const testimonials = [
     role: "Jugador Survival"
   }
 ];
+
+export const NetherPortal = () => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    strokeWidth="2" 
+    stroke="currentColor" 
+    className="h-6 w-6"
+  >
+    <rect x="4" y="4" width="16" height="16" rx="2" />
+    <path d="M9 4v16" />
+    <path d="M15 4v16" />
+    <path d="M4 9h16" />
+    <path d="M4 15h16" />
+    <path d="M2 12h20" transform="rotate(45 12 12)" stroke="currentColor" strokeWidth="1" />
+    <path d="M2 12h20" transform="rotate(-45 12 12)" stroke="currentColor" strokeWidth="1" />
+  </svg>
+);

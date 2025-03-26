@@ -1,6 +1,6 @@
-
 import React from "react";
 import UtilityCard from "./UtilityCard";
+import { NetherPortal } from "../data/minecraftData";
 
 interface Utility {
   title: string;
@@ -35,6 +35,13 @@ const UtilitiesGrid: React.FC<UtilitiesGridProps> = ({ utilities, version }) => 
               link={utility.link}
             />
           ))}
+          
+          <UtilityCard
+            title="Calculadora de Portales"
+            description="Convierte coordenadas entre el Overworld y el Nether para facilitar la construcción de portales."
+            icon={<NetherPortal />}
+            link="/calculadora-portales"
+          />
         </div>
       </div>
     </section>
