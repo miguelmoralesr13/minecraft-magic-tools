@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Book, Sword, Pickaxe, Shield, Axe, Helmet, ChestArmor, Trousers, Boots, FishingRod } from "lucide-react";
+import { Book, Sword, Pickaxe, Shield, Axe, HardHat, Shirt, Pants, Boot, Fishing } from "lucide-react";
 import { toast } from "sonner";
 import EnchantmentsList from "./EnchantmentsList";
 import OptimizationResult from "./OptimizationResult";
@@ -148,11 +148,11 @@ const EnchantmentOptimizer: React.FC = () => {
       case "pickaxe": return <Pickaxe className="h-5 w-5" />;
       case "shield": return <Shield className="h-5 w-5" />;
       case "axe": return <Axe className="h-5 w-5" />;
-      case "helmet": return <Helmet className="h-5 w-5" />;
-      case "chestplate": return <ChestArmor className="h-5 w-5" />;
-      case "leggings": return <Trousers className="h-5 w-5" />;
-      case "boots": return <Boots className="h-5 w-5" />;
-      case "fishing_rod": return <FishingRod className="h-5 w-5" />;
+      case "helmet": return <HardHat className="h-5 w-5" />;
+      case "chestplate": return <Shirt className="h-5 w-5" />;
+      case "leggings": return <Pants className="h-5 w-5" />;
+      case "boots": return <Boot className="h-5 w-5" />;
+      case "fishing_rod": return <Fishing className="h-5 w-5" />;
       default: return <Sword className="h-5 w-5" />;
     }
   };
@@ -177,11 +177,11 @@ const EnchantmentOptimizer: React.FC = () => {
                       {item.id === "pickaxe" && <Pickaxe className="h-4 w-4" />}
                       {item.id === "shield" && <Shield className="h-4 w-4" />}
                       {item.id === "axe" && <Axe className="h-4 w-4" />}
-                      {item.id === "helmet" && <Helmet className="h-4 w-4" />}
-                      {item.id === "chestplate" && <ChestArmor className="h-4 w-4" />}
-                      {item.id === "leggings" && <Trousers className="h-4 w-4" />}
-                      {item.id === "boots" && <Boots className="h-4 w-4" />}
-                      {item.id === "fishing_rod" && <FishingRod className="h-4 w-4" />}
+                      {item.id === "helmet" && <HardHat className="h-4 w-4" />}
+                      {item.id === "chestplate" && <Shirt className="h-4 w-4" />}
+                      {item.id === "leggings" && <Pants className="h-4 w-4" />}
+                      {item.id === "boots" && <Boot className="h-4 w-4" />}
+                      {item.id === "fishing_rod" && <Fishing className="h-4 w-4" />}
                       {item.name}
                     </div>
                   </SelectItem>

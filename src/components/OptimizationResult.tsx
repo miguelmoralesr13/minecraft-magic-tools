@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Book, Sword, Pickaxe, Shield, Axe, Helmet, ChestArmor, Trousers, Boots, FishingRod, Plus, ArrowRight } from "lucide-react";
+import { Book, Sword, Pickaxe, Shield, Axe, HardHat, Shirt, Pants, Boot, Fishing, Plus, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,11 +28,11 @@ const OptimizationResult: React.FC<OptimizationResultProps> = ({
       case "pickaxe": return <Pickaxe className="h-5 w-5" />;
       case "shield": return <Shield className="h-5 w-5" />;
       case "axe": return <Axe className="h-5 w-5" />;
-      case "helmet": return <Helmet className="h-5 w-5" />;
-      case "chestplate": return <ChestArmor className="h-5 w-5" />;
-      case "leggings": return <Trousers className="h-5 w-5" />;
-      case "boots": return <Boots className="h-5 w-5" />;
-      case "fishing_rod": return <FishingRod className="h-5 w-5" />;
+      case "helmet": return <HardHat className="h-5 w-5" />;
+      case "chestplate": return <Shirt className="h-5 w-5" />;
+      case "leggings": return <Pants className="h-5 w-5" />;
+      case "boots": return <Boot className="h-5 w-5" />;
+      case "fishing_rod": return <Fishing className="h-5 w-5" />;
       case "book": return <Book className="h-5 w-5" />;
       default: return <Sword className="h-5 w-5" />;
     }
