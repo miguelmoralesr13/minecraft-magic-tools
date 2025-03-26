@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Book, Sword, Pickaxe, Shield, Plus, ArrowRight } from "lucide-react";
+import { Book, Sword, Pickaxe, Shield, Axe, Helmet, ChestArmor, Trousers, Boots, FishingRod, Plus, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,6 +27,12 @@ const OptimizationResult: React.FC<OptimizationResultProps> = ({
       case "sword": return <Sword className="h-5 w-5" />;
       case "pickaxe": return <Pickaxe className="h-5 w-5" />;
       case "shield": return <Shield className="h-5 w-5" />;
+      case "axe": return <Axe className="h-5 w-5" />;
+      case "helmet": return <Helmet className="h-5 w-5" />;
+      case "chestplate": return <ChestArmor className="h-5 w-5" />;
+      case "leggings": return <Trousers className="h-5 w-5" />;
+      case "boots": return <Boots className="h-5 w-5" />;
+      case "fishing_rod": return <FishingRod className="h-5 w-5" />;
       case "book": return <Book className="h-5 w-5" />;
       default: return <Sword className="h-5 w-5" />;
     }
@@ -38,6 +44,12 @@ const OptimizationResult: React.FC<OptimizationResultProps> = ({
       case "sword": return "Espada";
       case "pickaxe": return "Pico";
       case "shield": return "Escudo";
+      case "axe": return "Hacha";
+      case "helmet": return "Casco";
+      case "chestplate": return "Pechera";
+      case "leggings": return "Pantalones";
+      case "boots": return "Botas";
+      case "fishing_rod": return "Caña de Pescar";
       case "book": return "Libro de Encantamiento";
       default: return type;
     }
@@ -66,7 +78,7 @@ const OptimizationResult: React.FC<OptimizationResultProps> = ({
       {steps.length === 0 ? (
         <div className="text-center p-8 text-muted-foreground">
           <Book className="mx-auto h-12 w-12 opacity-20 mb-2" />
-          <p>Selecciona encantamientos y presiona "Optimizar" para ver los pasos</p>
+          <p>Selecciona encantamientos para ver los pasos de optimización</p>
         </div>
       ) : (
         <>

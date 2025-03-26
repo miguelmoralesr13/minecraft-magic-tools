@@ -3,9 +3,8 @@ import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Book, Sword, Pickaxe, Shield, ArrowRight } from "lucide-react";
+import { Book, Sword, Pickaxe, Shield, Axe, Helmet, ChestArmor, Trousers, Boots, FishingRod } from "lucide-react";
 import { toast } from "sonner";
 import EnchantmentsList from "./EnchantmentsList";
 import OptimizationResult from "./OptimizationResult";
@@ -72,7 +71,8 @@ const EnchantmentOptimizer: React.FC = () => {
       if (existingIndex >= 0) {
         // If same level, remove it
         if (prev[existingIndex].level === level) {
-          return prev.filter(e => e.enchantment.id !== enchantment.id);
+          const updated = prev.filter(e => e.enchantment.id !== enchantment.id);
+          return updated;
         }
         // If different level, update it
         const updated = [...prev];
@@ -95,10 +95,11 @@ const EnchantmentOptimizer: React.FC = () => {
     });
   };
 
-  // Optimize enchantments
-  const optimizeEnchantments = () => {
+  // Optimize enchantments - now runs automatically when selectedEnchantments changes
+  useEffect(() => {
     if (selectedEnchantments.length === 0) {
-      toast.error("Selecciona al menos un encantamiento");
+      setOptimizationResults([]);
+      setTotalExperience(0);
       return;
     }
 
@@ -138,9 +139,7 @@ const EnchantmentOptimizer: React.FC = () => {
     
     setOptimizationResults(steps);
     setTotalExperience(totalCost);
-    
-    toast.success("¡Optimización completada!");
-  };
+  }, [selectedEnchantments, selectedItem]);
 
   // Icon based on item type
   const getItemIcon = () => {
@@ -148,6 +147,12 @@ const EnchantmentOptimizer: React.FC = () => {
       case "sword": return <Sword className="h-5 w-5" />;
       case "pickaxe": return <Pickaxe className="h-5 w-5" />;
       case "shield": return <Shield className="h-5 w-5" />;
+      case "axe": return <Axe className="h-5 w-5" />;
+      case "helmet": return <Helmet className="h-5 w-5" />;
+      case "chestplate": return <ChestArmor className="h-5 w-5" />;
+      case "leggings": return <Trousers className="h-5 w-5" />;
+      case "boots": return <Boots className="h-5 w-5" />;
+      case "fishing_rod": return <FishingRod className="h-5 w-5" />;
       default: return <Sword className="h-5 w-5" />;
     }
   };
@@ -171,6 +176,12 @@ const EnchantmentOptimizer: React.FC = () => {
                       {item.id === "sword" && <Sword className="h-4 w-4" />}
                       {item.id === "pickaxe" && <Pickaxe className="h-4 w-4" />}
                       {item.id === "shield" && <Shield className="h-4 w-4" />}
+                      {item.id === "axe" && <Axe className="h-4 w-4" />}
+                      {item.id === "helmet" && <Helmet className="h-4 w-4" />}
+                      {item.id === "chestplate" && <ChestArmor className="h-4 w-4" />}
+                      {item.id === "leggings" && <Trousers className="h-4 w-4" />}
+                      {item.id === "boots" && <Boots className="h-4 w-4" />}
+                      {item.id === "fishing_rod" && <FishingRod className="h-4 w-4" />}
                       {item.name}
                     </div>
                   </SelectItem>
@@ -184,15 +195,6 @@ const EnchantmentOptimizer: React.FC = () => {
             selectedEnchantments={selectedEnchantments}
             onToggleEnchantment={toggleEnchantment}
           />
-          
-          <Button 
-            variant="default" 
-            className="w-full"
-            onClick={optimizeEnchantments}
-            disabled={selectedEnchantments.length === 0}
-          >
-            Optimizar Encantamientos
-          </Button>
         </div>
       </Card>
 

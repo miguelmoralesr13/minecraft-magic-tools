@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
 import EnchantmentOptimizer from "@/components/EnchantmentOptimizer";
 
-const SeedMap = () => {
+const EnchantmentOptimizerPage = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -25,4 +25,4 @@ const SeedMap = () => {
   );
 };
 
-export default SeedMap;
+export default EnchantmentOptimizerPage;

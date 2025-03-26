@@ -30,10 +30,46 @@ export const enchantableItems: EnchantableItem[] = [
     enchantability: 14
   },
   {
+    id: "axe",
+    name: "Hacha",
+    category: "tool",
+    enchantability: 14
+  },
+  {
     id: "shield",
     name: "Escudo",
     category: "armor",
     enchantability: 9
+  },
+  {
+    id: "helmet",
+    name: "Casco",
+    category: "armor",
+    enchantability: 12
+  },
+  {
+    id: "chestplate",
+    name: "Pechera",
+    category: "armor",
+    enchantability: 12
+  },
+  {
+    id: "leggings",
+    name: "Pantalones",
+    category: "armor",
+    enchantability: 12
+  },
+  {
+    id: "boots",
+    name: "Botas",
+    category: "armor",
+    enchantability: 12
+  },
+  {
+    id: "fishing_rod",
+    name: "Caña de Pescar",
+    category: "tool",
+    enchantability: 14
   }
 ];
 
@@ -44,7 +80,7 @@ export const enchantments: Enchantment[] = [
     name: "Filo",
     maxLevel: 5,
     description: "Aumenta el daño de ataque",
-    targetItems: ["sword"],
+    targetItems: ["sword", "axe"],
     conflicts: ["smite", "bane_of_arthropods"]
   },
   {
@@ -52,7 +88,7 @@ export const enchantments: Enchantment[] = [
     name: "Castigo",
     maxLevel: 5,
     description: "Aumenta el daño contra no-muertos",
-    targetItems: ["sword"],
+    targetItems: ["sword", "axe"],
     conflicts: ["sharpness", "bane_of_arthropods"]
   },
   {
@@ -60,7 +96,7 @@ export const enchantments: Enchantment[] = [
     name: "Perdición de los Artrópodos",
     maxLevel: 5,
     description: "Aumenta el daño contra arácnidos",
-    targetItems: ["sword"],
+    targetItems: ["sword", "axe"],
     conflicts: ["sharpness", "smite"]
   },
   {
@@ -92,7 +128,7 @@ export const enchantments: Enchantment[] = [
     name: "Eficiencia",
     maxLevel: 5,
     description: "Aumenta la velocidad de minado",
-    targetItems: ["pickaxe"],
+    targetItems: ["pickaxe", "axe", "shovel"],
     conflicts: []
   },
   {
@@ -100,7 +136,7 @@ export const enchantments: Enchantment[] = [
     name: "Toque de Seda",
     maxLevel: 1,
     description: "Los bloques se recogen intactos",
-    targetItems: ["pickaxe"],
+    targetItems: ["pickaxe", "axe", "shovel"],
     conflicts: ["fortune"]
   },
   {
@@ -108,7 +144,7 @@ export const enchantments: Enchantment[] = [
     name: "Fortuna",
     maxLevel: 3,
     description: "Aumenta los drops de los bloques",
-    targetItems: ["pickaxe"],
+    targetItems: ["pickaxe", "axe", "shovel"],
     conflicts: ["silk_touch"]
   },
   {
@@ -116,7 +152,7 @@ export const enchantments: Enchantment[] = [
     name: "Irrompibilidad",
     maxLevel: 3,
     description: "Aumenta la durabilidad del objeto",
-    targetItems: ["sword", "pickaxe", "shield"],
+    targetItems: ["sword", "pickaxe", "shield", "axe", "helmet", "chestplate", "leggings", "boots", "fishing_rod"],
     conflicts: []
   },
   {
@@ -124,7 +160,7 @@ export const enchantments: Enchantment[] = [
     name: "Reparación",
     maxLevel: 1,
     description: "Repara el objeto con XP",
-    targetItems: ["sword", "pickaxe", "shield"],
+    targetItems: ["sword", "pickaxe", "shield", "axe", "helmet", "chestplate", "leggings", "boots", "fishing_rod"],
     conflicts: []
   },
   {
@@ -132,7 +168,7 @@ export const enchantments: Enchantment[] = [
     name: "Protección",
     maxLevel: 4,
     description: "Reduce el daño de la mayoría de fuentes",
-    targetItems: ["shield"],
+    targetItems: ["helmet", "chestplate", "leggings", "boots"],
     conflicts: ["blast_protection", "fire_protection", "projectile_protection"]
   },
   {
@@ -140,7 +176,7 @@ export const enchantments: Enchantment[] = [
     name: "Protección contra Explosiones",
     maxLevel: 4,
     description: "Reduce el daño de explosiones",
-    targetItems: ["shield"],
+    targetItems: ["helmet", "chestplate", "leggings", "boots"],
     conflicts: ["protection", "fire_protection", "projectile_protection"]
   },
   {
@@ -148,7 +184,7 @@ export const enchantments: Enchantment[] = [
     name: "Protección contra el Fuego",
     maxLevel: 4,
     description: "Reduce el daño de fuego",
-    targetItems: ["shield"],
+    targetItems: ["helmet", "chestplate", "leggings", "boots"],
     conflicts: ["protection", "blast_protection", "projectile_protection"]
   },
   {
@@ -156,7 +192,71 @@ export const enchantments: Enchantment[] = [
     name: "Protección contra Proyectiles",
     maxLevel: 4,
     description: "Reduce el daño de proyectiles",
-    targetItems: ["shield"],
+    targetItems: ["helmet", "chestplate", "leggings", "boots"],
     conflicts: ["protection", "blast_protection", "fire_protection"]
+  },
+  {
+    id: "respiration",
+    name: "Respiración",
+    maxLevel: 3,
+    description: "Extiende el tiempo bajo el agua",
+    targetItems: ["helmet"],
+    conflicts: []
+  },
+  {
+    id: "aqua_affinity",
+    name: "Afinidad Acuática",
+    maxLevel: 1,
+    description: "Aumenta la velocidad de minado bajo el agua",
+    targetItems: ["helmet"],
+    conflicts: []
+  },
+  {
+    id: "thorns",
+    name: "Espinas",
+    maxLevel: 3,
+    description: "Inflige daño a los atacantes",
+    targetItems: ["chestplate", "helmet", "leggings", "boots"],
+    conflicts: []
+  },
+  {
+    id: "depth_strider",
+    name: "Agilidad Acuática",
+    maxLevel: 3,
+    description: "Aumenta la velocidad de movimiento bajo el agua",
+    targetItems: ["boots"],
+    conflicts: ["frost_walker"]
+  },
+  {
+    id: "frost_walker",
+    name: "Paso Helado",
+    maxLevel: 2,
+    description: "Convierte el agua en hielo bajo tus pies",
+    targetItems: ["boots"],
+    conflicts: ["depth_strider"]
+  },
+  {
+    id: "feather_falling",
+    name: "Caída de Pluma",
+    maxLevel: 4,
+    description: "Reduce el daño por caída",
+    targetItems: ["boots"],
+    conflicts: []
+  },
+  {
+    id: "lure",
+    name: "Atracción",
+    maxLevel: 3,
+    description: "Reduce el tiempo para pescar",
+    targetItems: ["fishing_rod"],
+    conflicts: []
+  },
+  {
+    id: "luck_of_the_sea",
+    name: "Suerte Marina",
+    maxLevel: 3,
+    description: "Aumenta la probabilidad de tesoros al pescar",
+    targetItems: ["fishing_rod"],
+    conflicts: []
   }
 ];
