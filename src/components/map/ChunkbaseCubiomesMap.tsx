@@ -1,3 +1,4 @@
+
 /**
  * ChunkbaseCubiomesMap.tsx
  * Componente para mostrar un mapa de Minecraft con biomas y estructuras
@@ -10,6 +11,7 @@ import { toast } from 'sonner';
 import { getBiomeAt } from '@/utils/minecraft/initCubiomes';
 import { biomeColors, biomeNames } from '@/utils/minecraft/biomeColors';
 import { generateStructures } from '@/utils/minecraft/StructureGenerator';
+import { renderBiomeMap } from '@/utils/minecraft/BiomeMapRenderer';
 
 // Interfaz para la referencia expuesta
 export interface ChunkbaseCubiomesMapRef {
@@ -31,6 +33,7 @@ const ChunkbaseCubiomesMap = forwardRef<ChunkbaseCubiomesMapRef, ChunkbaseCubiom
     const [hoveredBiome, setHoveredBiome] = useState<number | null>(null);
     const [hoveredCoords, setHoveredCoords] = useState<{x: number, z: number} | null>(null);
     const [biomeCache, setBiomeCache] = useState<Record<string, number>>({});
+    const [renderTime, setRenderTime] = useState<number>(0);
     
     const { 
       position, 
@@ -120,181 +123,146 @@ const ChunkbaseCubiomesMap = forwardRef<ChunkbaseCubiomesMapRef, ChunkbaseCubiom
       }
     };
     
-    // Renderizar el mapa
+    // Renderizar el mapa usando el método de ImageData (estilo Chunkbase)
     useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
       
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      
       const render = async () => {
-        // Limpiar el canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const startTime = performance.now();
         
-        // Dibujar el fondo
-        ctx.fillStyle = '#111';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Obtener dimensiones del canvas
+        const width = canvas.width;
+        const height = canvas.height;
         
-        // Calcular el tamaño del chunk y coordenadas centrales
+        // Centro del mundo en el canvas
+        const centerX = -position.x / zoom;
+        const centerZ = -position.y / zoom;
+        
+        // Renderizar el mapa de manera eficiente
+        await renderBiomeMap({
+          canvas,
+          seed,
+          version,
+          centerX,
+          centerZ,
+          zoom,
+          width,
+          height,
+          showBiomes
+        });
+        
+        // Calcular el tamaño del chunk
         const chunkSize = 16 * zoom;
-        const centerX = canvas.width / 2 + position.x;
-        const centerZ = canvas.height / 2 + position.y;
         
-        // Calcular el rango de chunks a dibujar
-        const startChunkX = Math.floor((0 - centerX) / chunkSize);
-        const startChunkZ = Math.floor((0 - centerZ) / chunkSize);
-        const endChunkX = Math.ceil((canvas.width - centerX) / chunkSize);
-        const endChunkZ = Math.ceil((canvas.height - centerZ) / chunkSize);
+        // Punto central del canvas
+        const canvasCenterX = width / 2 + position.x;
+        const canvasCenterZ = height / 2 + position.y;
         
-        // Limitar el número de chunks a dibujar para mejor rendimiento
-        const maxChunks = 30;
-        const rangeX = Math.min(endChunkX - startChunkX, maxChunks);
-        const rangeZ = Math.min(endChunkZ - startChunkZ, maxChunks);
-        
-        // Centrar el rango
-        const offsetX = Math.floor(rangeX / 2);
-        const offsetZ = Math.floor(rangeZ / 2);
-        const centerChunkX = Math.floor(-position.x / chunkSize);
-        const centerChunkZ = Math.floor(-position.y / chunkSize);
-        
-        // Dibujar los chunks
-        for (let dz = -offsetZ; dz <= offsetZ; dz++) {
-          for (let dx = -offsetX; dx <= offsetX; dx++) {
-            const chunkX = centerChunkX + dx;
-            const chunkZ = centerChunkZ + dz;
+        // Renderizar las estructuras
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.save();
+          
+          // Dibujar las estructuras
+          for (const structure of structures) {
+            // Filtrar por tipo activo
+            if (!filters.includes(structure.type)) continue;
             
-            const x = centerX + chunkX * chunkSize;
-            const z = centerZ + chunkZ * chunkSize;
+            // Convertir coordenadas del mundo a coordenadas del canvas
+            const structX = canvasCenterX + (structure.x / 16) * chunkSize;
+            const structZ = canvasCenterZ + (structure.z / 16) * chunkSize;
             
-            // Coordenadas del mundo
-            const worldX = chunkX * 16;
-            const worldZ = chunkZ * 16;
-            
-            if (showBiomes) {
-              // Obtener y dibujar el bioma
-              const biome = await getBiomeAtCached(worldX, worldZ);
-              ctx.fillStyle = biomeColors[biome] || '#000';
-              ctx.fillRect(x, z, chunkSize, chunkSize);
-            } else {
-              // Dibujar cuadrícula
-              ctx.fillStyle = '#222';
-              ctx.fillRect(x, z, chunkSize, chunkSize);
-              ctx.strokeStyle = '#333';
-              ctx.strokeRect(x, z, chunkSize, chunkSize);
+            // Si está fuera del canvas, saltarla
+            if (structX < -20 || structX > width + 20 || 
+                structZ < -20 || structZ > height + 20) {
+              continue;
             }
             
-            // Dibujar coordenadas cada 4 chunks si el zoom es suficiente
-            if ((chunkX % 4 === 0 && chunkZ % 4 === 0) && zoom > 0.8) {
-              ctx.fillStyle = '#ffffff80';
-              ctx.font = '10px Arial';
-              ctx.fillText(`${worldX},${worldZ}`, x + 2, z + 10);
+            // Tamaño según zoom
+            const size = Math.max(8, 12 * zoom);
+            
+            // Si está seleccionada, destacarla
+            const isSelected = selectedStructure && 
+                selectedStructure.x === structure.x && 
+                selectedStructure.z === structure.z;
+            
+            // Crear un icono para la estructura
+            ctx.beginPath();
+            ctx.arc(structX, structZ, size/2, 0, Math.PI * 2);
+            
+            // Color basado en el bioma
+            ctx.fillStyle = biomeColors[structure.biome] || '#888';
+            ctx.fill();
+            
+            // Borde blanco o amarillo si está seleccionada
+            ctx.lineWidth = isSelected ? 2 : 1;
+            ctx.strokeStyle = isSelected ? '#ff0' : '#fff';
+            ctx.stroke();
+            
+            // Tipo de estructura (primera letra)
+            ctx.fillStyle = '#000';
+            ctx.font = `bold ${size * 0.7}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(structure.type[0].toUpperCase(), structX, structZ);
+            
+            // Si está seleccionada, mostrar información
+            if (isSelected) {
+              // Mostrar información detallada
+              ctx.fillStyle = 'rgba(0,0,0,0.8)';
+              ctx.fillRect(structX + 10, structZ - 10, 150, 80);
+              
+              ctx.fillStyle = '#fff';
+              ctx.font = '12px Arial';
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'top';
+              
+              const biomeName = biomeNames[structure.biome] || 'Desconocido';
+              
+              ctx.fillText(`${structure.type}`, structX + 15, structZ - 5);
+              ctx.fillText(`X: ${structure.x}, Z: ${structure.z}`, structX + 15, structZ + 15);
+              ctx.fillText(`Bioma: ${biomeName}`, structX + 15, structZ + 35);
+              ctx.fillText(`Dist: ${Math.round(structure.distanceFromSpawn)}`, structX + 15, structZ + 55);
             }
           }
+          
+          ctx.restore();
         }
         
-        // Dibujar ejes de coordenadas
-        ctx.strokeStyle = '#ff0000';
-        ctx.lineWidth = 1;
-        
-        // Eje X
-        ctx.beginPath();
-        ctx.moveTo(0, centerZ);
-        ctx.lineTo(canvas.width, centerZ);
-        ctx.stroke();
-        
-        // Eje Z
-        ctx.beginPath();
-        ctx.moveTo(centerX, 0);
-        ctx.lineTo(centerX, canvas.height);
-        ctx.stroke();
-        
-        // Dibujar el punto de spawn
-        ctx.fillStyle = '#ffff00';
-        ctx.beginPath();
-        ctx.arc(centerX, centerZ, 5, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Dibujar estructuras
-        for (const structure of structures) {
-          // Filtrar por tipo
-          if (!filters.includes(structure.type)) continue;
-          
-          // Calcular posición en el canvas
-          const structX = centerX + (structure.x / 16) * chunkSize;
-          const structZ = centerZ + (structure.z / 16) * chunkSize;
-          
-          // Si está fuera del canvas, saltarla
-          if (structX < -20 || structX > canvas.width + 20 || 
-              structZ < -20 || structZ > canvas.height + 20) {
-            continue;
-          }
-          
-          // Tamaño según zoom
-          const size = Math.max(8, 12 * zoom);
-          
-          // Dibujar icono
-          ctx.fillStyle = biomeColors[structure.biome] || '#888';
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 1;
-          
-          // Si está seleccionada, destacarla
-          if (selectedStructure && 
-              selectedStructure.x === structure.x && 
-              selectedStructure.z === structure.z) {
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#ff0';
-          }
-          
-          // Dibujar el marcador
-          ctx.beginPath();
-          ctx.arc(structX, structZ, size/2, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-          
-          // Tipo de estructura (primera letra)
-          ctx.fillStyle = '#fff';
-          ctx.font = `bold ${size}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(structure.type[0].toUpperCase(), structX, structZ);
-        }
-        
-        // Mostrar información del bioma
+        // Información del bioma al hacer hover
         if (hoveredBiome !== null && hoveredCoords !== null) {
-          ctx.fillStyle = 'rgba(0,0,0,0.7)';
-          ctx.fillRect(10, 10, 200, 60);
-          
-          ctx.fillStyle = '#fff';
-          ctx.font = '12px Arial';
-          ctx.textAlign = 'left';
-          ctx.fillText(`X: ${hoveredCoords.x}, Z: ${hoveredCoords.z}`, 20, 30);
-          ctx.fillText(`Bioma: ${biomeNames[hoveredBiome] || 'Desconocido'}`, 20, 50);
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.save();
+            
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(10, 10, 200, 60);
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            
+            ctx.fillText(`X: ${hoveredCoords.x}, Z: ${hoveredCoords.z}`, 20, 20);
+            ctx.fillText(`Bioma: ${biomeNames[hoveredBiome] || 'Desconocido'}`, 20, 40);
+            
+            // Muestra de color
+            const biomeColor = biomeColors[hoveredBiome] || '#888';
+            ctx.fillStyle = biomeColor;
+            ctx.fillRect(160, 25, 20, 20);
+            
+            ctx.restore();
+          }
         }
         
-        // Mostrar información de la estructura seleccionada
-        if (selectedStructure) {
-          const structX = centerX + (selectedStructure.x / 16) * chunkSize;
-          const structZ = centerZ + (selectedStructure.z / 16) * chunkSize;
-          
-          ctx.fillStyle = 'rgba(0,0,0,0.8)';
-          ctx.fillRect(structX + 10, structZ - 10, 150, 70);
-          
-          ctx.fillStyle = '#fff';
-          ctx.font = '12px Arial';
-          ctx.textAlign = 'left';
-          
-          const biomeName = biomeNames[selectedStructure.biome] || 'Desconocido';
-          
-          ctx.fillText(`${selectedStructure.type}`, structX + 15, structZ);
-          ctx.fillText(`X: ${selectedStructure.x}, Z: ${selectedStructure.z}`, structX + 15, structZ + 15);
-          ctx.fillText(`Bioma: ${biomeName}`, structX + 15, structZ + 30);
-          ctx.fillText(`Distancia: ${selectedStructure.distanceFromSpawn}`, structX + 15, structZ + 45);
-        }
+        // Medir tiempo de renderizado
+        const endTime = performance.now();
+        setRenderTime(endTime - startTime);
       };
       
       render();
-    }, [position, zoom, structures, filters, selectedStructure, showBiomes, biomeCache]);
+    }, [position, zoom, structures, filters, selectedStructure, showBiomes, seed, version, biomeCache]);
     
     // Ajustar el tamaño del canvas al contenedor
     useEffect(() => {
@@ -381,6 +349,11 @@ const ChunkbaseCubiomesMap = forwardRef<ChunkbaseCubiomesMapRef, ChunkbaseCubiom
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         )}
+        
+        {/* Stats for debugging */}
+        <div className="absolute bottom-2 right-2 text-xs text-white bg-black bg-opacity-50 p-1 rounded">
+          Render: {renderTime.toFixed(0)}ms | Zoom: {zoom.toFixed(2)}x
+        </div>
       </div>
     );
   }

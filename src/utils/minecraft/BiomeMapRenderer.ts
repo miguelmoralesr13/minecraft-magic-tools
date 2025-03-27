@@ -1,153 +1,191 @@
+
 /**
  * BiomeMapRenderer.ts
  * Renderizador de mapa de biomas utilizando técnicas similares a Chunkbase
  * Implementa un renderizado eficiente píxel por píxel usando ImageData
  */
 
-import { biomeColors } from './biomeColors';
+import { biomeColors, biomeNames } from './biomeColors';
+import { getBiomeAt } from './initCubiomes';
 
-// Interfaz para las opciones de renderizado
+// Interfaz para las opciones de renderizado del mapa
 export interface BiomeMapRenderOptions {
   canvas: HTMLCanvasElement;
-  biomeData: Uint8Array; // Array de índices de biomas
-  heightData?: Uint8Array; // Datos de altura opcional
+  seed: string;
+  version: string;
+  centerX: number;
+  centerZ: number;
+  zoom: number;
   width: number;
   height: number;
-  biomeList: Record<number, { rgb: number[], category?: string, temperature?: number }>;
+  showBiomes: boolean;
 }
 
 /**
- * Función auxiliar para ajustar el color según la altura
- * Similar a la función 'c' en el código de Chunkbase
+ * Renderiza un mapa de biomas de Minecraft de forma eficiente
+ * Usa técnica de ImageData para manipular píxeles directamente en lugar de fillRect
  */
-const adjustColorByHeight = (height: number, color: number): number => {
-  // Ajustar el color basado en la altura
-  // Valores más altos = colores más claros, valores más bajos = colores más oscuros
-  if (height > 100) {
-    return Math.min(255, color + Math.floor((height - 100) / 2));
-  } else if (height < 60) {
-    return Math.max(0, color - Math.floor((60 - height) / 2));
-  }
-  return color;
-};
-
-/**
- * Convierte los nombres de biomas a un formato compatible con el renderizador
- * @param biomeData Objeto con nombres de biomas por coordenadas de chunk
- * @returns Objeto con información de biomas para renderizado
- */
-export const prepareBiomeData = (biomeData: Record<string, string>): {
-  biomeIndices: Uint8Array,
-  biomeList: Record<number, { rgb: number[], category: string, temperature: number }>
-} => {
-  // Crear un mapa de nombres de biomas a índices
-  const biomeNames = Object.values(biomeData);
-  const uniqueBiomes = [...new Set(biomeNames)];
-  const biomeToIndex: Record<string, number> = {};
+export const renderBiomeMap = async (options: BiomeMapRenderOptions): Promise<void> => {
+  const { 
+    canvas, 
+    seed, 
+    version, 
+    centerX, 
+    centerZ, 
+    zoom, 
+    width, 
+    height,
+    showBiomes 
+  } = options;
   
-  // Asignar índices a cada bioma único
-  uniqueBiomes.forEach((name, index) => {
-    biomeToIndex[name] = index;
-  });
-  
-  // Crear array de índices de biomas
-  const size = Object.keys(biomeData).length;
-  const biomeIndices = new Uint8Array(size);
-  
-  // Llenar el array con los índices correspondientes
-  Object.entries(biomeData).forEach(([key, biomeName], index) => {
-    biomeIndices[index] = biomeToIndex[biomeName] || 255; // 255 = desconocido
-  });
-  
-  // Crear lista de biomas con información de color
-  const biomeList: Record<number, { rgb: number[], category: string, temperature: number }> = {};
-  
-  uniqueBiomes.forEach((name) => {
-    const index = biomeToIndex[name];
-    const colorHex = biomeColors[name] || '#000000';
-    
-    // Convertir color hexadecimal a RGB
-    const r = parseInt(colorHex.substring(1, 3), 16);
-    const g = parseInt(colorHex.substring(3, 5), 16);
-    const b = parseInt(colorHex.substring(5, 7), 16);
-    
-    // Determinar categoría y temperatura basado en el nombre del bioma
-    const isOcean = name.includes('ocean') || name.includes('river');
-    const isCold = name.includes('frozen') || name.includes('snowy') || name.includes('cold');
-    
-    biomeList[index] = {
-      rgb: [r, g, b],
-      category: isOcean ? 'ocean' : 'land',
-      temperature: isCold ? 0 : 1
-    };
-  });
-  
-  return { biomeIndices, biomeList };
-};
-
-/**
- * Renderiza el mapa de biomas en un canvas utilizando ImageData
- * Implementa un enfoque similar al de Chunkbase para mayor eficiencia
- */
-export const renderBiomeMap = (options: BiomeMapRenderOptions): void => {
-  const { canvas, biomeData, heightData, width, height, biomeList } = options;
-  
-  // Obtener el contexto 2D del canvas
+  // Obtener el contexto 2D
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   
-  // Crear ImageData para manipular píxeles directamente
+  // Crear un ImageData para manipular píxeles directamente
   const imageData = ctx.createImageData(width, height);
   const pixels = imageData.data;
   
-  // Renderizar cada píxel
-  for (let i = 0; i < width * height; i++) {
-    const biomeIndex = biomeData[i];
+  // Tamaño de un chunk en bloques
+  const chunkSize = 16;
+  // Escala: cuántos píxeles por bloque
+  const blockScale = zoom;
+  // Tamaño de la región a cargar (en bloques)
+  const blocksWidth = Math.ceil(width / blockScale);
+  const blocksHeight = Math.ceil(height / blockScale);
+  
+  // Calcular las coordenadas de inicio en el mundo
+  const startX = Math.floor(centerX - blocksWidth / 2);
+  const startZ = Math.floor(centerZ - blocksHeight / 2);
+  
+  // Biome cache para evitar recalcular biomas repetidos
+  const biomeCache: Record<string, number> = {};
+  
+  // Función para obtener el bioma con caché
+  const getBiomeCached = async (x: number, z: number): Promise<number> => {
+    const key = `${x},${z}`;
+    if (biomeCache[key] !== undefined) {
+      return biomeCache[key];
+    }
     
-    // Si el bioma es válido (no es 255 = desconocido)
-    if (biomeIndex !== 255) {
-      const biome = biomeList[biomeIndex];
-      const rgb = biome.rgb;
-      
-      // Aplicar ajustes de color basados en altura si están disponibles
-      if (heightData) {
-        const height = heightData[i];
-        const isLowElevation = height < 62;
-        const isWater = biome.category === 'ocean' || biome.category === 'river';
-        const isCold = biome.temperature <= 0.1;
+    const biome = await getBiomeAt(seed, x, z, version);
+    biomeCache[key] = biome;
+    return biome;
+  };
+  
+  // Color de fondo para cuando no se muestran biomas
+  if (!showBiomes) {
+    // Fondo gris claro
+    for (let i = 0; i < width * height; i++) {
+      pixels[4*i + 0] = 242; // R
+      pixels[4*i + 1] = 242; // G
+      pixels[4*i + 2] = 242; // B
+      pixels[4*i + 3] = 255; // A
+    }
+    
+    // Dibujar cuadrícula
+    for (let z = 0; z < height; z++) {
+      for (let x = 0; x < width; x++) {
+        // Posición en bloques del mundo
+        const worldX = startX + Math.floor(x / blockScale);
+        const worldZ = startZ + Math.floor(z / blockScale);
         
-        // Aplicar reglas especiales de coloración basadas en elevación y tipo de bioma
-        if (isLowElevation && !isWater) {
-          // Tierra baja no acuática
-          const snowBiomeIndex = isCold ? 11 : 7; // Índices para biomas de nieve o normales
-          const snowBiome = biomeList[snowBiomeIndex];
-          
-          pixels[4*i+0] = adjustColorByHeight(height, snowBiome.rgb[0]); // R
-          pixels[4*i+1] = adjustColorByHeight(height, snowBiome.rgb[1]); // G
-          pixels[4*i+2] = adjustColorByHeight(height, snowBiome.rgb[2]); // B
-        } else if (!isLowElevation && isWater) {
-          // Agua en elevación alta
-          const waterBiomeIndex = isCold ? 26 : 16; // Índices para agua fría o normal
-          const waterBiome = biomeList[waterBiomeIndex];
-          
-          pixels[4*i+0] = adjustColorByHeight(height, waterBiome.rgb[0]); // R
-          pixels[4*i+1] = adjustColorByHeight(height, waterBiome.rgb[1]); // G
-          pixels[4*i+2] = adjustColorByHeight(height, waterBiome.rgb[2]); // B
-        } else {
-          // Caso normal: ajustar color por altura
-          pixels[4*i+0] = adjustColorByHeight(height, rgb[0]); // R
-          pixels[4*i+1] = adjustColorByHeight(height, rgb[1]); // G
-          pixels[4*i+2] = adjustColorByHeight(height, rgb[2]); // B
+        // Si estamos en el borde de un chunk, dibujamos líneas
+        if (worldX % chunkSize === 0 || worldZ % chunkSize === 0) {
+          pixels[4*(z * width + x) + 0] = 200; // R
+          pixels[4*(z * width + x) + 1] = 200; // G
+          pixels[4*(z * width + x) + 2] = 200; // B
         }
-      } else {
-        // Sin datos de altura, usar colores directos
-        pixels[4*i+0] = rgb[0]; // R
-        pixels[4*i+1] = rgb[1]; // G
-        pixels[4*i+2] = rgb[2]; // B
       }
-      
-      // Establecer canal alfa a completamente opaco
-      pixels[4*i+3] = 255; // Alpha
+    }
+  } else {
+    // Cargamos biomas para cada píxel
+    const loadBiomesPromises: Promise<void>[] = [];
+    
+    // Recorrer por píxel de pantalla
+    for (let z = 0; z < height; z++) {
+      for (let x = 0; x < width; x++) {
+        const pixelIndex = z * width + x;
+        
+        // Coordenadas del mundo para este píxel
+        const worldX = startX + Math.floor(x / blockScale);
+        const worldZ = startZ + Math.floor(z / blockScale);
+        
+        // Solo cargar un bioma por cada posición del mundo
+        // (esto optimiza no cargar varias veces el mismo bloque)
+        const promiseForPixel = (async () => {
+          // No obtenemos el bioma de cada píxel, sino de cada bloque del mundo
+          // Esto reduce enormemente las llamadas a getBiomeAt
+          const biome = await getBiomeCached(worldX, worldZ);
+          
+          // Obtener color del bioma
+          const colorHex = biomeColors[biome] || '#888888';
+          
+          // Convertir color hexadecimal a RGB
+          const r = parseInt(colorHex.substring(1, 3), 16);
+          const g = parseInt(colorHex.substring(3, 5), 16);
+          const b = parseInt(colorHex.substring(5, 7), 16);
+          
+          // Ajustar color por posición para dar efecto de variación
+          const variation = (((worldX % 4) + (worldZ % 4)) % 3) - 1; // -1, 0, 1
+          
+          // Escribir en los píxeles
+          pixels[4*pixelIndex + 0] = Math.min(255, Math.max(0, r + variation * 5)); // R
+          pixels[4*pixelIndex + 1] = Math.min(255, Math.max(0, g + variation * 5)); // G
+          pixels[4*pixelIndex + 2] = Math.min(255, Math.max(0, b + variation * 5)); // B
+          pixels[4*pixelIndex + 3] = 255; // A
+        })();
+        
+        loadBiomesPromises.push(promiseForPixel);
+      }
+    }
+    
+    // Esperar a que terminen todas las promesas de carga
+    await Promise.all(loadBiomesPromises);
+  }
+  
+  // Dibujar ejes de coordenadas (X = rojo, Z = azul)
+  const originX = Math.floor((0 - startX) * blockScale);
+  const originZ = Math.floor((0 - startZ) * blockScale);
+  
+  // Eje X (coordenada Z = 0)
+  if (originZ >= 0 && originZ < height) {
+    for (let x = 0; x < width; x++) {
+      pixels[4*(originZ * width + x) + 0] = 255; // R
+      pixels[4*(originZ * width + x) + 1] = 0;   // G
+      pixels[4*(originZ * width + x) + 2] = 0;   // B
+      pixels[4*(originZ * width + x) + 3] = 255; // A
+    }
+  }
+  
+  // Eje Z (coordenada X = 0)
+  if (originX >= 0 && originX < width) {
+    for (let z = 0; z < height; z++) {
+      pixels[4*(z * width + originX) + 0] = 0;   // R
+      pixels[4*(z * width + originX) + 1] = 0;   // G
+      pixels[4*(z * width + originX) + 2] = 255; // B
+      pixels[4*(z * width + originX) + 3] = 255; // A
+    }
+  }
+  
+  // Dibujar punto de origen (0,0) si está visible
+  if (originX >= 0 && originX < width && originZ >= 0 && originZ < height) {
+    // Dibujar un círculo de 5px para el punto de origen
+    const radius = 2;
+    for (let dz = -radius; dz <= radius; dz++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (dx*dx + dz*dz <= radius*radius) {
+          const px = originX + dx;
+          const pz = originZ + dz;
+          
+          if (px >= 0 && px < width && pz >= 0 && pz < height) {
+            pixels[4*(pz * width + px) + 0] = 255; // R
+            pixels[4*(pz * width + px) + 1] = 255; // G
+            pixels[4*(pz * width + px) + 2] = 0;   // B
+            pixels[4*(pz * width + px) + 3] = 255; // A
+          }
+        }
+      }
     }
   }
   
@@ -156,26 +194,80 @@ export const renderBiomeMap = (options: BiomeMapRenderOptions): void => {
 };
 
 /**
- * Genera datos de altura simulados para pruebas
- * @param width Ancho del mapa
- * @param height Alto del mapa
- * @returns Array de datos de altura
+ * Prepara un ImageData para los biomas de una región
+ * @param seed Semilla del mundo
+ * @param version Versión de Minecraft
+ * @param x Coordenada X central (en bloques)
+ * @param z Coordenada Z central (en bloques)
+ * @param width Ancho en píxeles
+ * @param height Alto en píxeles
+ * @returns ImageData para dibujar en el canvas
  */
-export const generateMockHeightData = (width: number, height: number): Uint8Array => {
-  const heightData = new Uint8Array(width * height);
+export const prepareBiomeImageData = async (
+  seed: string,
+  version: string,
+  x: number,
+  z: number,
+  width: number,
+  height: number,
+  zoom: number = 1
+): Promise<ImageData> => {
+  // Crear un ImageData del tamaño requerido
+  const imageData = new ImageData(width, height);
+  const pixels = imageData.data;
   
-  // Generar datos de altura simulados
-  for (let z = 0; z < height; z++) {
-    for (let x = 0; x < width; x++) {
-      // Simular colinas y valles con una función de ruido simple
-      const nx = x / width - 0.5;
-      const nz = z / height - 0.5;
-      const distance = Math.sqrt(nx * nx + nz * nz) * 8;
-      const noise = Math.sin(distance * Math.PI) * 20 + 70; // Valor entre 50 y 90
+  // Escala: cuántos píxeles por bloque
+  const blockScale = zoom;
+  
+  // Calcular coordenadas de inicio
+  const startX = x - Math.floor(width / blockScale / 2);
+  const startZ = z - Math.floor(height / blockScale / 2);
+  
+  // Biome cache
+  const biomeCache: Record<string, number> = {};
+  
+  // Cargar biomas para cada píxel
+  const promises: Promise<void>[] = [];
+  
+  for (let pz = 0; pz < height; pz++) {
+    for (let px = 0; px < width; px++) {
+      const pixelIndex = pz * width + px;
       
-      heightData[z * width + x] = Math.floor(noise);
+      // Convertir píxel a coordenada del mundo
+      const worldX = startX + Math.floor(px / blockScale);
+      const worldZ = startZ + Math.floor(pz / blockScale);
+      
+      const promise = (async () => {
+        // Obtener bioma (con caché)
+        const cacheKey = `${worldX},${worldZ}`;
+        let biome: number;
+        
+        if (biomeCache[cacheKey] !== undefined) {
+          biome = biomeCache[cacheKey];
+        } else {
+          biome = await getBiomeAt(seed, worldX, worldZ, version);
+          biomeCache[cacheKey] = biome;
+        }
+        
+        // Obtener color del bioma
+        const colorHex = biomeColors[biome] || '#888888';
+        
+        // Convertir color hexadecimal a RGB
+        const r = parseInt(colorHex.substring(1, 3), 16);
+        const g = parseInt(colorHex.substring(3, 5), 16);
+        const b = parseInt(colorHex.substring(5, 7), 16);
+        
+        // Escribir en los píxeles
+        pixels[4*pixelIndex + 0] = r; // R
+        pixels[4*pixelIndex + 1] = g; // G
+        pixels[4*pixelIndex + 2] = b; // B
+        pixels[4*pixelIndex + 3] = 255; // A
+      })();
+      
+      promises.push(promise);
     }
   }
   
-  return heightData;
+  await Promise.all(promises);
+  return imageData;
 };
