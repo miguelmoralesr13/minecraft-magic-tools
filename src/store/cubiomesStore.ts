@@ -162,12 +162,12 @@ export const useCubiomesStore = create<CubiomesStore>((set, get) => ({
             // Calcular distancia desde el spawn
             const distanceFromSpawn = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
             
-            // Crear estructura
+            // Crear estructura, asegurando que biome sea un string
             structures.push({
               type,
               x: pos.x,
               z: pos.z,
-              biome: String(biome),
+              biome: biome !== null ? String(biome) : 'unknown',
               distanceFromSpawn,
               version: mapOptions.version
             });
@@ -243,12 +243,12 @@ export const useCubiomesStore = create<CubiomesStore>((set, get) => ({
         // Calcular distancia desde el spawn
         const distanceFromSpawn = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
         
-        // Crear estructura, ensuring biome is a string
+        // Crear estructura, asegurando que biome sea un string
         structures.push({
           type: structureType,
           x: pos.x,
           z: pos.z,
-          biome: String(biome), // Explicitly convert biome to string
+          biome: String(biome),
           distanceFromSpawn,
           version
         });
