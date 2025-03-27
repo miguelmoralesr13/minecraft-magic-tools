@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 export interface MinecraftStructure {
@@ -10,9 +9,16 @@ export interface MinecraftStructure {
   version: string;
 }
 
+interface Position {
+  x: number;
+  y: number;
+  startX?: number;
+  startY?: number;
+}
+
 interface MapStoreState {
   // Map view state
-  position: { x: number, y: number };
+  position: Position;
   zoom: number;
   isDragging: boolean;
   
@@ -28,7 +34,7 @@ interface MapStoreState {
   setSeed: (seed: string) => void;
   setVersion: (version: string) => void;
   setZoom: (zoom: number) => void;
-  setPosition: (position: { x: number, y: number }) => void;
+  setPosition: (position: Position) => void;
   setShowBiomes: (show: boolean) => void;
   setShowControls: (show: boolean) => void;
   setActiveStructures: (structures: string[]) => void;
@@ -58,7 +64,7 @@ export const useMapStore = create<MapStoreState>()((set, get) => ({
   version: 'java',
   showBiomes: true,
   showControls: true,
-  activeStructures: ['village', 'fortress', 'stronghold', 'monument', 'mansion', 'temple', 'mineshaft', 'ruined_portal', 'outpost', 'spawner'],
+  activeStructures: ['village', 'fortress', 'stronghold', 'monument', 'mansion', 'mineshaft', 'temple', 'ruined_portal', 'outpost', 'spawner'],
   selectedStructure: null,
   
   // Actions
@@ -145,19 +151,15 @@ export const useMapStore = create<MapStoreState>()((set, get) => ({
     const centerX = canvas.width / 2 + position.x;
     const centerZ = canvas.height / 2 + position.y;
     
-    // Find the closest structure
     let closestStructure = null;
     let minDistance = 40; // Threshold for selection in pixels
     
     for (const structure of structures) {
-      // Skip structures not in active filters
       if (!activeFilters.includes(structure.type)) continue;
       
-      // Convert world coordinates to canvas coordinates
       const structX = centerX + (structure.x / 16) * chunkSize;
       const structZ = centerZ + (structure.z / 16) * chunkSize;
       
-      // Calculate distance from click to structure
       const distance = Math.sqrt(
         Math.pow(structX - canvasX, 2) + 
         Math.pow(structZ - canvasY, 2)
@@ -173,7 +175,6 @@ export const useMapStore = create<MapStoreState>()((set, get) => ({
     return closestStructure;
   },
   
-  // Add the missing functions
   handleCenter: () => set({ position: { x: 0, y: 0 } }),
   
   toggleBiomes: () => set((state) => ({ showBiomes: !state.showBiomes }))
