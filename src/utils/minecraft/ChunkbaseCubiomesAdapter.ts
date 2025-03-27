@@ -4,7 +4,8 @@
  */
 
 import { MinecraftStructure } from './StructureGenerator';
-import { getBiomeAt, findStructures, loadCubiomesModule } from './CubiomesModule';
+import { getBiomeAt, findStructures } from './CubiomesModule';
+import { initCubiomesWasm } from './CubiomesWebAssembly';
 
 // Interfaz para las opciones de búsqueda
 export interface MapGenerationOptions {
@@ -29,8 +30,8 @@ export interface MapGenerationResult {
  * Clase adaptadora que conecta la funcionalidad de Chunkbase con Cubiomes
  */
 export class ChunkbaseCubiomesAdapter {
-   seed: string;
-   version: string;
+  seed: string;
+  version: string;
   private biomeCache: Record<string, string>;
   
   /**
@@ -50,7 +51,7 @@ export class ChunkbaseCubiomesAdapter {
    */
   public async initialize(): Promise<void> {
     // Cargar el módulo Cubiomes
-    await loadCubiomesModule();
+    await initCubiomesWasm();
     console.log('Adaptador ChunkbaseCubiomes inicializado con semilla:', this.seed);
   }
   
@@ -156,7 +157,7 @@ export class ChunkbaseCubiomesAdapter {
             type,
             x: pos.x,
             z: pos.z,
-            biome,
+            biome: String(biome), // Convert number to string
             distanceFromSpawn,
             version: this.version
           });

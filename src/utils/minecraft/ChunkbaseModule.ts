@@ -202,7 +202,7 @@ export class ChunkbaseModule {
           type: structureType,
           x: pos.x,
           z: pos.z,
-          biome,
+          biome: String(biome), // Convert number to string
           distanceFromSpawn,
           version: this.version
         });

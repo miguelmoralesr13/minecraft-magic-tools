@@ -1,4 +1,3 @@
-
 /**
  * StructureMarkers.tsx
  * Componente para mostrar marcadores de estructuras en el mapa
@@ -7,7 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { generateStructures } from '@/utils/minecraft/StructureGenerator';
 import { MinecraftStructure } from '@/store/mapStore';
-import { structureColors } from '@/utils/minecraft/biomeColors';
+import { structureColors } from '@/utils/minecraft/structureColors';
 
 interface StructureMarkersProps {
   seed: string;
