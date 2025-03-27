@@ -248,7 +248,7 @@ export const useCubiomesStore = create<CubiomesStore>((set, get) => ({
           type: structureType,
           x: pos.x,
           z: pos.z,
-          biome: String(biome),
+          biome: biome !== null ? String(biome) : 'unknown',
           distanceFromSpawn,
           version
         });
