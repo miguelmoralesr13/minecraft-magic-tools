@@ -10,6 +10,7 @@ interface MapState {
   startDragPosition: { x: number; y: number };
   selectedStructure: MinecraftStructure | null;
   showBiomes: boolean;
+  filters: string[];
   
   // Acciones
   setPosition: (position: { x: number; y: number }) => void;
@@ -18,6 +19,7 @@ interface MapState {
   setStartDragPosition: (position: { x: number; y: number }) => void;
   setSelectedStructure: (structure: MinecraftStructure | null) => void;
   setShowBiomes: (show: boolean) => void;
+  toggleFilter: (filter: string) => void;
   
   // Funciones de interacción
   handleCanvasClick: (e: React.MouseEvent, structures: MinecraftStructure[], filters: string[]) => void;
@@ -32,11 +34,12 @@ interface MapState {
 export const useMapStore = create<MapState>((set, get) => ({
   // Estado inicial
   position: { x: 0, y: 0 },
-  zoom: 1,
+  zoom: 1.5, // Aumentado para que el mapa se vea más grande inicialmente
   isDragging: false,
   startDragPosition: { x: 0, y: 0 },
   selectedStructure: null,
   showBiomes: false,
+  filters: [],
   
   // Setters
   setPosition: (position) => set({ position }),
@@ -178,5 +181,13 @@ export const useMapStore = create<MapState>((set, get) => ({
         ? "Mostrando vista de cuadrícula" 
         : "Mostrando vista de biomas"
     });
+  },
+  
+  toggleFilter: (filter) => {
+    const { filters } = get();
+    const newFilters = filters.includes(filter)
+      ? filters.filter(f => f !== filter)
+      : [...filters, filter];
+    set({ filters: newFilters });
   }
 }));
