@@ -167,7 +167,7 @@ export const useCubiomesStore = create<CubiomesStore>((set, get) => ({
               type,
               x: pos.x,
               z: pos.z,
-              biome,
+              biome: String(biome),
               distanceFromSpawn,
               version: mapOptions.version
             });
@@ -248,7 +248,7 @@ export const useCubiomesStore = create<CubiomesStore>((set, get) => ({
           type: structureType,
           x: pos.x,
           z: pos.z,
-          biome: String(biome), // Convert biome number to string
+          biome: String(biome),
           distanceFromSpawn,
           version
         });

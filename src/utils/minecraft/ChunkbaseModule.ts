@@ -106,9 +106,9 @@ export class ChunkbaseModule {
       const biomeName = await getBiomeAt(this.seed, x, z, this.version);
       
       // Guardar en caché
-      this.biomeCache[chunkKey] = biomeName;
+      this.biomeCache[chunkKey] = String(biomeName);
       
-      return biomeName;
+      return String(biomeName);
     } catch (error) {
       console.error(`Error al obtener el bioma en (${x}, ${z}):`, error);
       return 'unknown';
@@ -145,7 +145,7 @@ export class ChunkbaseModule {
           promises.push(
             this.getBiomeAt(worldX, worldZ)
               .then(biomeName => {
-                this.biomeCache[chunkKey] = biomeName;
+                this.biomeCache[chunkKey] = String(biomeName);
               })
               .catch(error => {
                 console.error(`Error al cargar bioma en chunk (${chunkX}, ${chunkZ}):`, error);
