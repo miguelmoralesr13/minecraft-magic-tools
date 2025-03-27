@@ -160,7 +160,8 @@ const SeedMapCanvas: React.FC<SeedMapCanvasProps> = ({
               x,
               z,
               biome,
-              distanceFromSpawn: distance
+              distanceFromSpawn: distance,
+              version: version // Add version property to fix the type error
             });
           }
           

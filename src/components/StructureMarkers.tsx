@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { MinecraftStructure } from '@/store/mapStore';
-import CubiomesModule from '../../wasm/cubiomes/build/cubiomes.js';
+import { getCubiomesWasmModule, initCubiomesWasm } from '@/utils/minecraft/CubiomesWebAssembly';
 
 interface StructureMarkersProps {
   seed: string;
@@ -35,7 +35,8 @@ const StructureMarkers: React.FC<StructureMarkersProps> = ({
     if (!module) {
       const loadModule = async () => {
         try {
-          const loadedModule = await CubiomesModule();
+          await initCubiomesWasm();
+          const loadedModule = getCubiomesWasmModule();
           setModule(loadedModule);
           console.log('Módulo Cubiomes cargado para estructuras');
         } catch (error) {
@@ -125,7 +126,8 @@ const StructureMarkers: React.FC<StructureMarkersProps> = ({
               x,
               z,
               biome,
-              distanceFromSpawn: distance
+              distanceFromSpawn: distance,
+              version: version // Add version property to fix the type error
             });
           }
           

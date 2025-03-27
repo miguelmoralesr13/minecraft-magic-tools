@@ -19,6 +19,7 @@ const MapComponent: React.FC = () => {
     selectedStructure,
     handleCenter, 
     toggleBiomes,
+    setZoom
   } = useMapStore();
 
   const [showStructuresList, setShowStructuresList] = React.useState(false);
@@ -26,13 +27,13 @@ const MapComponent: React.FC = () => {
   // Function to handle zoom in
   const handleZoomIn = () => {
     const newZoom = Math.min(zoom + 0.1, 2);
-    useMapStore.getState().setZoom(newZoom);
+    setZoom(newZoom);
   };
 
   // Function to handle zoom out
   const handleZoomOut = () => {
     const newZoom = Math.max(zoom - 0.1, 0.5);
-    useMapStore.getState().setZoom(newZoom);
+    setZoom(newZoom);
   };
 
   const toggleStructuresList = () => {
