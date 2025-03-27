@@ -1,37 +1,33 @@
+
 /**
  * structureColors.ts
  * Colores para los diferentes tipos de estructuras de Minecraft
+ * Basado en los colores usados por Chunkbase
  */
 
-export const structureColors: Record<string, string> = {
-  'village': '#4CAF50',      // Verde
-  'fortress': '#F44336',      // Rojo
-  'stronghold': '#9C27B0',    // Púrpura
-  'monument': '#2196F3',      // Azul
-  'mansion': '#795548',       // Marrón
-  'temple': '#FF9800',        // Naranja
-  'mineshaft': '#607D8B',     // Gris azulado
-  'ruined_portal': '#673AB7', // Violeta
-  'outpost': '#FFC107',       // Ámbar
-  'spawner': '#E91E63',       // Rosa
-  
-  // Valor por defecto para estructuras desconocidas
-  'unknown': '#000000'        // Negro
+export const structureColors: { [key: string]: string } = {
+  village: '#DDB032',       // Aldea - Color amarillo dorado
+  temple: '#B35900',        // Templo - Color marrón
+  stronghold: '#8000C4',    // Fortaleza del End - Color púrpura
+  monument: '#00C4C4',      // Monumento Oceánico - Color turquesa
+  mansion: '#8B4513',       // Mansión del Bosque - Color café/marrón oscuro
+  mineshaft: '#725038',     // Mina abandonada - Color marrón tierra
+  fortress: '#AA0000',      // Fortaleza del Nether - Color rojo
+  spawner: '#634125',       // Spawner - Color marrón oscuro
+  outpost: '#964B00',       // Outpost - Color cobre
+  ruined_portal: '#773600',  // Portal en ruinas - Color bronce
 };
 
-// Tamaños de iconos para diferentes estructuras
-export const structureSizes: Record<string, number> = {
-  'village': 24,
-  'fortress': 24,
-  'stronghold': 28,
-  'monument': 26,
-  'mansion': 26,
-  'temple': 22,
-  'mineshaft': 20,
-  'ruined_portal': 22,
-  'outpost': 22,
-  'spawner': 18,
-  
-  // Valor por defecto
-  'unknown': 20
+// Nombres de estructura en español para mostrar
+export const structureNames: { [key: string]: string } = {
+  village: 'Aldea',
+  temple: 'Templo',
+  stronghold: 'Fortaleza del End',
+  monument: 'Monumento Oceánico',
+  mansion: 'Mansión del Bosque',
+  mineshaft: 'Mina Abandonada',
+  fortress: 'Fortaleza del Nether',
+  spawner: 'Generador de Monstruos',
+  outpost: 'Puesto de Avanzada de Pillagers',
+  ruined_portal: 'Portal en Ruinas',
 };

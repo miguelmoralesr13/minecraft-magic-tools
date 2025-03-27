@@ -49,7 +49,7 @@ export const renderBiomeMap = async (options: BiomeMapRenderOptions): Promise<vo
   // Tamaño de un chunk en bloques
   const chunkSize = 16;
   // Escala: cuántos píxeles por bloque
-  const blockScale = zoom;
+  const blockScale = zoom / 16; // Convertir zoom a escala de bloque
   // Tamaño de la región a cargar (en bloques)
   const blocksWidth = Math.ceil(width / blockScale);
   const blocksHeight = Math.ceil(height / blockScale);
@@ -75,11 +75,11 @@ export const renderBiomeMap = async (options: BiomeMapRenderOptions): Promise<vo
   
   // Color de fondo para cuando no se muestran biomas
   if (!showBiomes) {
-    // Fondo gris claro
+    // Fondo gris oscuro
     for (let i = 0; i < width * height; i++) {
-      pixels[4*i + 0] = 242; // R
-      pixels[4*i + 1] = 242; // G
-      pixels[4*i + 2] = 242; // B
+      pixels[4*i + 0] = 43;  // R - Color #2B2B2B
+      pixels[4*i + 1] = 43;  // G
+      pixels[4*i + 2] = 43;  // B
       pixels[4*i + 3] = 255; // A
     }
     
@@ -92,17 +92,89 @@ export const renderBiomeMap = async (options: BiomeMapRenderOptions): Promise<vo
         
         // Si estamos en el borde de un chunk, dibujamos líneas
         if (worldX % chunkSize === 0 || worldZ % chunkSize === 0) {
-          pixels[4*(z * width + x) + 0] = 200; // R
-          pixels[4*(z * width + x) + 1] = 200; // G
-          pixels[4*(z * width + x) + 2] = 200; // B
+          pixels[4*(z * width + x) + 0] = 70; // R
+          pixels[4*(z * width + x) + 1] = 70; // G
+          pixels[4*(z * width + x) + 2] = 70; // B
         }
       }
     }
   } else {
+    // Mostrar mensaje de console para debug
+    console.log(`Renderizando mapa de biomas: ${width}x${height} píxeles, centrado en (${centerX}, ${centerZ}), zoom ${zoom}`);
+    console.time('renderBiomeMap');
+    
     // Cargamos biomas para cada píxel
     const loadBiomesPromises: Promise<void>[] = [];
     
+    // Procesar por chunks para optimizar
+    const chunkBatchSize = 8; // Tamaño del batch de chunks a procesar
+    
+    // Mapa de chunks a procesar
+    const chunksToProcess = new Map<string, { x: number, z: number }>();
+    
     // Recorrer por píxel de pantalla
+    for (let z = 0; z < height; z++) {
+      for (let x = 0; x < width; x++) {
+        // Coordenadas del mundo para este píxel
+        const worldX = startX + Math.floor(x / blockScale);
+        const worldZ = startZ + Math.floor(z / blockScale);
+        
+        // Calcular a qué chunk pertenece este bloque
+        const chunkX = Math.floor(worldX / 16);
+        const chunkZ = Math.floor(worldZ / 16);
+        const chunkKey = `${chunkX},${chunkZ}`;
+        
+        // Guardar las coordenadas del chunk para procesarlo luego
+        if (!chunksToProcess.has(chunkKey)) {
+          chunksToProcess.set(chunkKey, { x: chunkX, z: chunkZ });
+        }
+      }
+    }
+    
+    // Procesar los chunks por batches
+    let processedChunks = 0;
+    const totalChunks = chunksToProcess.size;
+    
+    console.log(`Total de chunks a procesar: ${totalChunks}`);
+    
+    // Convertir el mapa a un array para procesar por batches
+    const chunksArray = Array.from(chunksToProcess.values());
+    
+    // Procesar chunks por batches
+    for (let i = 0; i < chunksArray.length; i += chunkBatchSize) {
+      const chunkBatch = chunksArray.slice(i, i + chunkBatchSize);
+      
+      // Procesar cada chunk en el batch
+      const batchPromises = chunkBatch.map(async ({ x: chunkX, z: chunkZ }) => {
+        // Coordenada central del chunk
+        const centerChunkX = chunkX * 16 + 8;
+        const centerChunkZ = chunkZ * 16 + 8;
+        
+        // Obtener el bioma en el centro del chunk (usamos 1 consulta por chunk)
+        const biome = await getBiomeCached(centerChunkX, centerChunkZ);
+        
+        // Guardar el bioma para todo el chunk
+        for (let z = 0; z < 16; z++) {
+          for (let x = 0; x < 16; x++) {
+            const worldX = chunkX * 16 + x;
+            const worldZ = chunkZ * 16 + z;
+            biomeCache[`${worldX},${worldZ}`] = biome;
+          }
+        }
+        
+        processedChunks++;
+        if (processedChunks % 10 === 0) {
+          console.log(`Procesados ${processedChunks}/${totalChunks} chunks (${Math.round(processedChunks/totalChunks*100)}%)`);
+        }
+      });
+      
+      // Esperar a que termine este batch antes de continuar
+      await Promise.all(batchPromises);
+    }
+    
+    console.log('Todos los chunks procesados, pintando los píxeles...');
+    
+    // Ahora que tenemos todos los biomas en caché, pintar los píxeles
     for (let z = 0; z < height; z++) {
       for (let x = 0; x < width; x++) {
         const pixelIndex = z * width + x;
@@ -111,37 +183,30 @@ export const renderBiomeMap = async (options: BiomeMapRenderOptions): Promise<vo
         const worldX = startX + Math.floor(x / blockScale);
         const worldZ = startZ + Math.floor(z / blockScale);
         
-        // Solo cargar un bioma por cada posición del mundo
-        // (esto optimiza no cargar varias veces el mismo bloque)
-        const promiseForPixel = (async () => {
-          // No obtenemos el bioma de cada píxel, sino de cada bloque del mundo
-          // Esto reduce enormemente las llamadas a getBiomeAt
-          const biome = await getBiomeCached(worldX, worldZ);
-          
-          // Obtener color del bioma
-          const colorHex = biomeColors[biome] || '#888888';
-          
-          // Convertir color hexadecimal a RGB
-          const r = parseInt(colorHex.substring(1, 3), 16);
-          const g = parseInt(colorHex.substring(3, 5), 16);
-          const b = parseInt(colorHex.substring(5, 7), 16);
-          
-          // Ajustar color por posición para dar efecto de variación
-          const variation = (((worldX % 4) + (worldZ % 4)) % 3) - 1; // -1, 0, 1
-          
-          // Escribir en los píxeles
-          pixels[4*pixelIndex + 0] = Math.min(255, Math.max(0, r + variation * 5)); // R
-          pixels[4*pixelIndex + 1] = Math.min(255, Math.max(0, g + variation * 5)); // G
-          pixels[4*pixelIndex + 2] = Math.min(255, Math.max(0, b + variation * 5)); // B
-          pixels[4*pixelIndex + 3] = 255; // A
-        })();
+        // Obtener el bioma del caché
+        const biome = biomeCache[`${worldX},${worldZ}`] || 0;
         
-        loadBiomesPromises.push(promiseForPixel);
+        // Obtener color del bioma
+        const colorHex = biomeColors[biome] || '#888888';
+        
+        // Convertir color hexadecimal a RGB
+        const r = parseInt(colorHex.substring(1, 3), 16);
+        const g = parseInt(colorHex.substring(3, 5), 16);
+        const b = parseInt(colorHex.substring(5, 7), 16);
+        
+        // Añadir variación sutil basada en posición para dar textura
+        // Usar la posición del mundo para que sea consistente al moverse/hacer zoom
+        const variation = ((worldX % 3) + (worldZ % 3)) % 3 - 1; // -1, 0, 1
+        
+        // Escribir en los píxeles con variación sutil
+        pixels[4*pixelIndex + 0] = Math.min(255, Math.max(0, r + variation * 5)); // R
+        pixels[4*pixelIndex + 1] = Math.min(255, Math.max(0, g + variation * 5)); // G
+        pixels[4*pixelIndex + 2] = Math.min(255, Math.max(0, b + variation * 5)); // B
+        pixels[4*pixelIndex + 3] = 255; // A
       }
     }
     
-    // Esperar a que terminen todas las promesas de carga
-    await Promise.all(loadBiomesPromises);
+    console.timeEnd('renderBiomeMap');
   }
   
   // Dibujar ejes de coordenadas (X = rojo, Z = azul)
