@@ -1,3 +1,4 @@
+
 /**
  * MapCanvas.tsx
  * Componente para renderizar el mapa de Minecraft con estructuras y biomas
@@ -6,11 +7,11 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useMapStore } from '@/store/mapStore';
-import { MinecraftStructure, STRUCTURE_TYPES, BIOME_NAMES } from '@/utils/minecraft/StructureGenerator';
+import { MinecraftStructure } from '@/store/mapStore';
 import { getBiomeAt } from '@/utils/minecraft/CubiomesModule';
 import { biomeColors } from '@/utils/minecraft/biomeColors';
 import { structureColors } from '@/utils/minecraft/structureColors';
-import { renderBiomeMap, prepareBiomeData, generateMockHeightData } from '@/utils/minecraft/BiomeMapRenderer';
+import { renderBiomeMap, prepareBiomeImageData } from '@/utils/minecraft/BiomeMapRenderer';
 
 interface MapCanvasProps {
   structures: MinecraftStructure[];
@@ -103,141 +104,28 @@ const MapCanvas = React.forwardRef<{ downloadMap: () => void }, MapCanvasProps>(
   };
 
   // Función para cargar los biomas visibles
-  const loadVisibleBiomes =async () => {
+  const loadVisibleBiomes = async () => {
       
-      if (!showBiomes || !canvasRef.current) return;
-      
-      setIsBiomeLoading(true);
-      
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      
-      // Limpiar el canvas antes de dibujar los biomas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Dibujar el fondo con un color gris oscuro
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Calcular el centro del canvas en coordenadas de pantalla
-      const centerX = canvas.width / 2;
-      const centerZ = canvas.height / 2;
-      
-      // Calcular los chunks visibles
-      const chunkSize = 16 * (zoom / 16); // Tamaño de un chunk en píxeles
-      const visibleChunksX = Math.min(Math.ceil(canvas.width / chunkSize) + 2, 20); // Limitamos a 20 chunks en X
-      const visibleChunksZ = Math.min(Math.ceil(canvas.height / chunkSize) + 2, 20); // Limitamos a 20 chunks en Z
-      
-      // Calcular el chunk central en coordenadas del mundo
-      const centerWorldX = -position.x * 16 / zoom;
-      const centerWorldZ = -position.y * 16 / zoom;
-      const centerChunkX = Math.floor(centerWorldX / 16);
-      const centerChunkZ = Math.floor(centerWorldZ / 16);
-      
-      // Crear una lista de chunks a cargar, ordenados por distancia al centro
-      const chunksToLoad = [];
-      
-      console.log(showBiomes,canvasRef.current);
-    for (let offsetX = -Math.floor(visibleChunksX / 2); offsetX <= Math.floor(visibleChunksX / 2); offsetX++) {
-        for (let offsetZ = -Math.floor(visibleChunksZ / 2); offsetZ <= Math.floor(visibleChunksZ / 2); offsetZ++) {
-            // Calcular las coordenadas del chunk en el mundo
-            const chunkX = centerChunkX + offsetX;
-            const chunkZ = centerChunkZ + offsetZ;
-            
-            // Calcular las coordenadas del chunk en el canvas
-            const canvasX = centerX + (offsetX * chunkSize) + position.x;
-            const canvasZ = centerZ + (offsetZ * chunkSize) + position.y;
-            
-            // Convertir coordenadas de chunk a coordenadas del mundo (centro del chunk)
-            const worldX = chunkX * 16 + 8; // +8 para obtener el centro del chunk
-            const worldZ = chunkZ * 16 + 8;
-            
-            // Clave para almacenar el bioma en el cache
-            const chunkKey = `${chunkX},${chunkZ}`;
-            
-            // Obtener el bioma actual (desde caché o desconocido)
-            const currentBiome = biomeData[chunkKey] || 'Unknown';
-            
-            // Dibujar el chunk con el color del bioma
-            ctx.fillStyle = biomeColors[currentBiome] || '#000000';
-            ctx.fillRect(canvasX, canvasZ, chunkSize, chunkSize);
-        
-        // Dibujar borde del chunk con un color más sutil
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(canvasX, canvasZ, chunkSize, chunkSize);
-        
-        // Si el bioma no está en caché, añadirlo a la lista de chunks a cargar
-        if (!biomeData[chunkKey]) {
-          // Calcular la distancia al centro para priorizar
-          const distanceToCenter = Math.sqrt(offsetX * offsetX + offsetZ * offsetZ);
-          
-          chunksToLoad.push({
-            chunkKey,
-            worldX,
-            worldZ,
-            distanceToCenter
-          });
-        }
-      }
-    }
+    if (!showBiomes || !canvasRef.current) return;
     
-    // Ordenar los chunks por distancia al centro (los más cercanos primero)
-    chunksToLoad.sort((a, b) => a.distanceToCenter - b.distanceToCenter);
+    setIsBiomeLoading(true);
     
-    // Cargar los biomas en lotes para evitar bloquear el hilo principal
-    const BATCH_SIZE = 10; // Número de chunks a cargar por lote
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
     
-    for (let i = 0; i < chunksToLoad.length; i += BATCH_SIZE) {
-      const batch = chunksToLoad.slice(i, i + BATCH_SIZE);
-      
-      // Procesar este lote
-      await Promise.all(
-        batch.map(async ({ chunkKey, worldX, worldZ }) => {
-          try {
-            const biomeName = await getBiomeAtPosition(worldX, worldZ);
-            console.log(`Bioma en (${worldX}, ${worldZ}): ${biomeName}`);
-            // Actualizar el estado con el nuevo bioma
-            setBiomeData(prev => {
-              const newData = { ...prev, [chunkKey]: biomeName };
-              
-              // Redibujar este chunk con el color correcto
-              const [chunkXStr, chunkZStr] = chunkKey.split(',');
-              const chunkX = parseInt(chunkXStr);
-              const chunkZ = parseInt(chunkZStr);
-              
-              const offsetX = chunkX - centerChunkX;
-              const offsetZ = chunkZ - centerChunkZ;
-              
-              const canvasX = centerX + (offsetX * chunkSize) + position.x;
-              const canvasZ = centerZ + (offsetZ * chunkSize) + position.y;
-              
-              if (canvasRef.current) {
-                const ctx = canvasRef.current.getContext('2d');
-                if (ctx) {
-                  ctx.fillStyle = biomeColors[biomeName] || '#000000';
-                  ctx.fillRect(canvasX, canvasZ, chunkSize, chunkSize);
-                  
-                  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-                  ctx.lineWidth = 0.5;
-                  ctx.strokeRect(canvasX, canvasZ, chunkSize, chunkSize);
-                }
-              }
-              
-              return newData;
-            });
-          } catch (error) {
-            console.error(`Error al cargar bioma en ${worldX},${worldZ}:`, error);
-          }
-        })
-      );
-      
-      // Pequeña pausa para permitir que el navegador responda a eventos
-      if (i + BATCH_SIZE < chunksToLoad.length) {
-        await new Promise(resolve => setTimeout(resolve, 10));
-      }
-    }
+    // Renderizar el mapa de biomas usando la función optimizada
+    await renderBiomeMap({
+      canvas: canvas,
+      seed: seed,
+      version: version,
+      centerX: Math.floor(-position.x * 16 / zoom),
+      centerZ: Math.floor(-position.y * 16 / zoom),
+      zoom: zoom,
+      width: canvas.width,
+      height: canvas.height,
+      showBiomes: showBiomes
+    });
     
     setIsBiomeLoading(false);
   };
