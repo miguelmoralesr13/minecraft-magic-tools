@@ -3,7 +3,7 @@
  * Módulo para implementar la funcionalidad de Chunkbase con integración WebAssembly
  */
 
-import { MinecraftStructure, generateStructures } from './StructureGenerator';
+import { MinecraftStructure, generateStructures, STRUCTURE_TYPES } from './StructureGenerator';
 import { getBiomeAt, findStructures } from './CubiomesModule';
 
 // Interfaz para las opciones de búsqueda de Chunkbase
@@ -232,7 +232,8 @@ async function generateChunkbaseStructures(
 ): Promise<MinecraftStructure[]> {
   // Si no se especifican tipos de estructuras, generar todas
   if (structureTypes.length === 0) {
-    return generateStructures(seed, 150, version);
+    // Fix the type issue: convert radius (number) to a string version parameter
+    return generateStructures(seed, version, STRUCTURE_TYPES);
   }
   
   // Generar estructuras para cada tipo especificado

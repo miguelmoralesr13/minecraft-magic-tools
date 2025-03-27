@@ -4,9 +4,18 @@
  * Generador de estructuras de Minecraft
  */
 
-import { MinecraftStructure } from '@/store/mapStore';
 import { findStructures, getBiomeAt } from './initCubiomes';
 import { biomeNames } from './biomeColors';
+
+// Interfaz para estructuras de Minecraft
+export interface MinecraftStructure {
+  type: string;
+  x: number;
+  z: number;
+  biome: any; // Puede ser un número o un string dependiendo del contexto
+  distanceFromSpawn: number;
+  version: string;
+}
 
 // Tipos de estructuras disponibles
 export const STRUCTURE_TYPES = [

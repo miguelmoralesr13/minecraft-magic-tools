@@ -1,4 +1,3 @@
-
 /**
  * ChunkbaseCubiomesMap.tsx
  * Componente para mostrar un mapa de Minecraft con biomas y estructuras
@@ -346,7 +345,7 @@ const ChunkbaseCubiomesMap = forwardRef<ChunkbaseCubiomesMapRef, ChunkbaseCubiom
       }
     };
     
-    // Manejar clic en el canvas
+    // Handle canvas click - fix for line 360
     const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
       const canvas = e.currentTarget;
       const rect = canvas.getBoundingClientRect();
