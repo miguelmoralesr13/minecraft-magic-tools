@@ -345,18 +345,18 @@ const ChunkbaseCubiomesMap = forwardRef<ChunkbaseCubiomesMapRef, ChunkbaseCubiom
       }
     };
     
-    // Handle canvas click - fix for line 360
+    // Handle canvas click - fix for line 359
     const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
       const canvas = e.currentTarget;
       const rect = canvas.getBoundingClientRect();
       const canvasX = e.clientX - rect.left;
       const canvasY = e.clientY - rect.top;
       
-      // Buscar estructuras cerca del clic
-      const selected = useMapStore.getState().handleCanvasClick(e, structures, filters);
+      // Usar el store directamente para el click del canvas
+      const selectedStructure = useMapStore.getState().handleCanvasClick(e, structures, filters);
       
-      // Si no se seleccionó nada y hoveredBiome está disponible, mostrar información
-      if (!selected && hoveredBiome !== null && hoveredCoords !== null) {
+      // Si no se seleccionó ninguna estructura y hay información de bioma, mostrarla
+      if (selectedStructure === null && hoveredBiome !== null && hoveredCoords !== null) {
         toast.info(`Bioma: ${biomeNames[hoveredBiome] || 'Desconocido'}`, {
           description: `Coordenadas: X=${hoveredCoords.x}, Z=${hoveredCoords.z}`
         });

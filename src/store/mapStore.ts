@@ -46,7 +46,7 @@ interface MapStoreState {
   handleMouseMove: (e: React.MouseEvent<HTMLCanvasElement>) => void;
   handleMouseUp: () => void;
   handleWheel: (e: React.WheelEvent<HTMLCanvasElement>) => void;
-  handleCanvasClick: (e: React.MouseEvent<HTMLCanvasElement>, structures: MinecraftStructure[], activeFilters: string[]) => void;
+  handleCanvasClick: (e: React.MouseEvent<HTMLCanvasElement>, structures: MinecraftStructure[], activeFilters: string[]) => MinecraftStructure | null;
   
   // New functions to fix missing properties
   handleCenter: () => void;
