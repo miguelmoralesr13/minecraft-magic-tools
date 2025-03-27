@@ -1,443 +1,392 @@
 
-import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
-import { ChunkbaseCubiomesAdapter } from '@/utils/minecraft/ChunkbaseCubiomesAdapter';
-import { structureColors, structureSizes } from '@/utils/minecraft/structureColors';
-import { biomeColors } from '@/utils/minecraft/biomeColors';
-import { MinecraftStructure } from '@/utils/minecraft/StructureGenerator';
+/**
+ * ChunkbaseCubiomesMap.tsx
+ * Componente para mostrar un mapa de Minecraft con biomas y estructuras
+ * usando la API de Cubiomes
+ */
+
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { useMapStore, MinecraftStructure } from '@/store/mapStore';
 import { toast } from 'sonner';
-import { initCubiomes, isCubiomesLoaded } from '@/utils/minecraft/initCubiomes';
+import { getBiomeAt } from '@/utils/minecraft/initCubiomes';
+import { biomeColors, biomeNames } from '@/utils/minecraft/biomeColors';
+import { generateStructures } from '@/utils/minecraft/StructureGenerator';
 
-interface ChunkbaseCubiomesMapProps {
-  seed: string;
-  version: "java" | "bedrock";
-  filters: string[];
-  isLoading?: boolean;
-  onLoadingChange?: (isLoading: boolean) => void;
-}
-
+// Interfaz para la referencia expuesta
 export interface ChunkbaseCubiomesMapRef {
   downloadMap: () => void;
 }
 
-const ChunkbaseCubiomesMap = forwardRef<ChunkbaseCubiomesMapRef, ChunkbaseCubiomesMapProps>(({
-  seed,
-  version,
-  filters,
-  isLoading = false,
-  onLoadingChange
-}, ref) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [adapter, setAdapter] = useState<ChunkbaseCubiomesAdapter | null>(null);
-  const [structures, setStructures] = useState<MinecraftStructure[]>([]);
-  const [hoveredStructure, setHoveredStructure] = useState<MinecraftStructure | null>(null);
-  const [selectedStructure, setSelectedStructure] = useState<MinecraftStructure | null>(null);
-  const [showBiomes, setShowBiomes] = useState<boolean>(false);
-  const [mapLoading, setMapLoading] = useState<boolean>(isLoading);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-  
-  // Inicializar Cubiomes y el adaptador
-  useEffect(() => {
-    const initialize = async () => {
+interface ChunkbaseCubiomesMapProps {
+  seed: string;
+  version: string;
+  filters: string[];
+  isLoading: boolean;
+  onLoadingChange: (loading: boolean) => void;
+}
+
+const ChunkbaseCubiomesMap = forwardRef<ChunkbaseCubiomesMapRef, ChunkbaseCubiomesMapProps>(
+  ({ seed, version, filters, isLoading, onLoadingChange }, ref) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [structures, setStructures] = useState<MinecraftStructure[]>([]);
+    const [hoveredBiome, setHoveredBiome] = useState<number | null>(null);
+    const [hoveredCoords, setHoveredCoords] = useState<{x: number, z: number} | null>(null);
+    const [biomeCache, setBiomeCache] = useState<Record<string, number>>({});
+    
+    const { 
+      position, 
+      zoom, 
+      isDragging,
+      showBiomes,
+      selectedStructure,
+      setSelectedStructure,
+      handleMouseDown,
+      handleMouseMove,
+      handleMouseUp,
+      handleWheel
+    } = useMapStore();
+    
+    // Exponer la función de descarga
+    useImperativeHandle(ref, () => ({
+      downloadMap: () => {
+        if (!canvasRef.current) return;
+        
+        try {
+          // Convertir el canvas a una imagen PNG
+          const dataUrl = canvasRef.current.toDataURL('image/png');
+          
+          // Crear un enlace para descargar
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = `minecraft-seed-${seed}.png`;
+          
+          // Simular un clic para iniciar la descarga
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          toast.success('Mapa descargado correctamente');
+        } catch (error) {
+          console.error('Error al descargar el mapa:', error);
+          toast.error('Error al descargar el mapa');
+        }
+      }
+    }));
+    
+    // Cargar estructuras cuando cambia la semilla o versión
+    useEffect(() => {
+      const loadStructures = async () => {
+        try {
+          onLoadingChange(true);
+          
+          console.log(`Cargando estructuras para semilla ${seed}, versión ${version}`);
+          const newStructures = await generateStructures(seed, version, filters);
+          
+          setStructures(newStructures);
+          console.log(`Se encontraron ${newStructures.length} estructuras`);
+          
+          // Limpiar el caché de biomas al cambiar de semilla
+          setBiomeCache({});
+        } catch (error) {
+          console.error('Error al cargar estructuras:', error);
+          toast.error('Error al cargar estructuras');
+        } finally {
+          onLoadingChange(false);
+        }
+      };
+      
+      loadStructures();
+    }, [seed, version, filters]);
+    
+    // Obtener el bioma en una posición (usando caché)
+    const getBiomeAtCached = async (x: number, z: number): Promise<number> => {
+      const key = `${x},${z}`;
+      
+      // Si ya está en caché, devolverlo
+      if (biomeCache[key] !== undefined) {
+        return biomeCache[key];
+      }
+      
       try {
-        // Inicializar Cubiomes si no está cargado
-        if (!isCubiomesLoaded()) {
-          setMapLoading(true);
-          if (onLoadingChange) onLoadingChange(true);
-          await initCubiomes();
+        // Obtener el bioma
+        const biome = await getBiomeAt(seed, x, z, version);
+        
+        // Guardar en caché
+        setBiomeCache(prev => ({...prev, [key]: biome}));
+        
+        return biome;
+      } catch (error) {
+        console.error(`Error al obtener bioma en (${x}, ${z}):`, error);
+        return 0; // Bioma desconocido
+      }
+    };
+    
+    // Renderizar el mapa
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      
+      const render = async () => {
+        // Limpiar el canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Dibujar el fondo
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Calcular el tamaño del chunk y coordenadas centrales
+        const chunkSize = 16 * zoom;
+        const centerX = canvas.width / 2 + position.x;
+        const centerZ = canvas.height / 2 + position.y;
+        
+        // Calcular el rango de chunks a dibujar
+        const startChunkX = Math.floor((0 - centerX) / chunkSize);
+        const startChunkZ = Math.floor((0 - centerZ) / chunkSize);
+        const endChunkX = Math.ceil((canvas.width - centerX) / chunkSize);
+        const endChunkZ = Math.ceil((canvas.height - centerZ) / chunkSize);
+        
+        // Limitar el número de chunks a dibujar para mejor rendimiento
+        const maxChunks = 30;
+        const rangeX = Math.min(endChunkX - startChunkX, maxChunks);
+        const rangeZ = Math.min(endChunkZ - startChunkZ, maxChunks);
+        
+        // Centrar el rango
+        const offsetX = Math.floor(rangeX / 2);
+        const offsetZ = Math.floor(rangeZ / 2);
+        const centerChunkX = Math.floor(-position.x / chunkSize);
+        const centerChunkZ = Math.floor(-position.y / chunkSize);
+        
+        // Dibujar los chunks
+        for (let dz = -offsetZ; dz <= offsetZ; dz++) {
+          for (let dx = -offsetX; dx <= offsetX; dx++) {
+            const chunkX = centerChunkX + dx;
+            const chunkZ = centerChunkZ + dz;
+            
+            const x = centerX + chunkX * chunkSize;
+            const z = centerZ + chunkZ * chunkSize;
+            
+            // Coordenadas del mundo
+            const worldX = chunkX * 16;
+            const worldZ = chunkZ * 16;
+            
+            if (showBiomes) {
+              // Obtener y dibujar el bioma
+              const biome = await getBiomeAtCached(worldX, worldZ);
+              ctx.fillStyle = biomeColors[biome] || '#000';
+              ctx.fillRect(x, z, chunkSize, chunkSize);
+            } else {
+              // Dibujar cuadrícula
+              ctx.fillStyle = '#222';
+              ctx.fillRect(x, z, chunkSize, chunkSize);
+              ctx.strokeStyle = '#333';
+              ctx.strokeRect(x, z, chunkSize, chunkSize);
+            }
+            
+            // Dibujar coordenadas cada 4 chunks si el zoom es suficiente
+            if ((chunkX % 4 === 0 && chunkZ % 4 === 0) && zoom > 0.8) {
+              ctx.fillStyle = '#ffffff80';
+              ctx.font = '10px Arial';
+              ctx.fillText(`${worldX},${worldZ}`, x + 2, z + 10);
+            }
+          }
         }
         
-        // Crear el adaptador
-        import('@/utils/minecraft/ChunkbaseCubiomesAdapter').then(async (module) => {
-          const newAdapter = await module.createChunkbaseCubiomesAdapter(seed, version === "java" ? "1.20" : "1.20B");
-          setAdapter(newAdapter);
-          generateMap(newAdapter);
-        });
-      } catch (error) {
-        console.error('Error al inicializar:', error);
-        toast.error('Error al inicializar el generador de mapas');
-        setMapLoading(false);
-        if (onLoadingChange) onLoadingChange(false);
-      }
-    };
-    
-    initialize();
-  }, []);
-  
-  // Regenerar el mapa cuando cambia la semilla o versión
-  useEffect(() => {
-    if (!adapter) return;
-    
-    adapter.setSeedAndVersion(seed, version === "java" ? "1.20" : "1.20B");
-    generateMap(adapter);
-  }, [seed, version, adapter]);
-  
-  // Actualizar el estado de carga
-  useEffect(() => {
-    if (isLoading !== mapLoading) {
-      setMapLoading(isLoading);
-    }
-  }, [isLoading]);
-  
-  // Generar el mapa con estructuras
-  const generateMap = async (mapAdapter: ChunkbaseCubiomesAdapter) => {
-    if (!mapAdapter) return;
-    
-    try {
-      setMapLoading(true);
-      if (onLoadingChange) onLoadingChange(true);
-      
-      const result = await mapAdapter.generateMap({
-        seed,
-        version: version === "java" ? "1.20" : "1.20B",
-        showBiomes
-      });
-      
-      setStructures(result.structures);
-      toast.success(`${result.structures.length} estructuras generadas para la semilla: ${seed}`);
-    } catch (error) {
-      console.error('Error al generar el mapa:', error);
-      toast.error('Error al generar el mapa');
-    } finally {
-      setMapLoading(false);
-      if (onLoadingChange) onLoadingChange(false);
-    }
-  };
-  
-  // Funcionalidad para descargar el mapa
-  const downloadMap = () => {
-    if (!canvasRef.current) return;
-    
-    const canvas = canvasRef.current;
-    const dataUrl = canvas.toDataURL('image/png');
-    
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `minecraft-map-seed-${seed}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success('Mapa descargado correctamente');
-  };
-  
-  // Exponer la función de descarga a través de ref
-  useImperativeHandle(ref, () => ({
-    downloadMap
-  }));
-  
-  // Ajustar tamaño del canvas cuando cambia el contenedor
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const resizeObserver = new ResizeObserver(entries => {
-      const { width, height } = entries[0].contentRect;
-      canvas.width = width;
-      canvas.height = height;
-      setCanvasSize({ width, height });
-      renderMap();
-    });
-    
-    resizeObserver.observe(canvas.parentElement as Element);
-    
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
-  
-  // Renderizar el mapa cuando cambian las estructuras o filtros
-  useEffect(() => {
-    renderMap();
-  }, [structures, filters, position, zoom, hoveredStructure, selectedStructure, showBiomes]);
-  
-  // Renderizar el mapa
-  const renderMap = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    // Limpiar el canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Dibujar el fondo
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Calcular centro del canvas
-    const centerX = canvas.width / 2 + position.x;
-    const centerZ = canvas.height / 2 + position.y;
-    
-    // Dibujar cuadrícula
-    const gridSize = 16 * zoom;
-    ctx.strokeStyle = '#333333';
-    ctx.lineWidth = 0.5;
-    
-    // Líneas verticales
-    for (let x = centerX % gridSize; x < canvas.width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    }
-    
-    // Líneas horizontales
-    for (let z = centerZ % gridSize; z < canvas.height; z += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, z);
-      ctx.lineTo(canvas.width, z);
-      ctx.stroke();
-    }
-    
-    // Dibujar ejes
-    ctx.strokeStyle = '#ff0000';
-    ctx.lineWidth = 1;
-    
-    // Eje X (Z=0)
-    ctx.beginPath();
-    ctx.moveTo(0, centerZ);
-    ctx.lineTo(canvas.width, centerZ);
-    ctx.stroke();
-    
-    // Eje Z (X=0)
-    ctx.beginPath();
-    ctx.moveTo(centerX, 0);
-    ctx.lineTo(centerX, canvas.height);
-    ctx.stroke();
-    
-    // Dibujar punto de spawn
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(centerX, centerZ, 5, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(centerX, centerZ, 7, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Dibujar estructuras
-    structures.forEach(structure => {
-      // Filtrar estructuras
-      if (filters.length > 0 && !filters.includes(structure.type)) return;
-      
-      // Convertir coordenadas del mundo a coordenadas del canvas
-      const x = centerX + (structure.x * zoom) / 16;
-      const z = centerZ + (structure.z * zoom) / 16;
-      
-      // Verificar si está dentro del canvas (con margen)
-      if (x < -50 || x > canvas.width + 50 || z < -50 || z > canvas.height + 50) {
-        return;
-      }
-      
-      // Determinar si está seleccionada o hover
-      const isHovered = hoveredStructure === structure;
-      const isSelected = selectedStructure === structure;
-      const size = structureSizes[structure.type] || 20;
-      const scaledSize = size * Math.max(0.5, Math.min(1.5, zoom / 1.5));
-      
-      // Dibujar fondo de la estructura
-      ctx.fillStyle = structureColors[structure.type] || structureColors.unknown;
-      ctx.globalAlpha = 0.3;
-      ctx.beginPath();
-      ctx.arc(x, z, scaledSize / 2 + (isSelected ? 6 : isHovered ? 4 : 2), 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1.0;
-      
-      // Dibujar icono
-      try {
-        const img = new Image();
-        img.src = `/icons/${structure.type}.svg`;
-        ctx.drawImage(img, x - scaledSize / 2, z - scaledSize / 2, scaledSize, scaledSize);
-      } catch (e) {
-        // Fallback si no se encuentra el icono
-        ctx.fillStyle = structureColors[structure.type] || structureColors.unknown;
-        ctx.beginPath();
-        ctx.arc(x, z, scaledSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      
-      // Destacar estructura seleccionada
-      if (isSelected) {
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(x, z, scaledSize / 2 + 6, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        // Mostrar información de la estructura
-        const infoX = x + scaledSize;
-        const infoY = z - scaledSize;
-        
-        // Fondo de la información
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.fillRect(infoX, infoY, 170, 80);
-        
-        // Texto de la información
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '12px Arial';
-        ctx.fillText(`Tipo: ${structure.type}`, infoX + 10, infoY + 20);
-        ctx.fillText(`X: ${structure.x}, Z: ${structure.z}`, infoX + 10, infoY + 40);
-        ctx.fillText(`Bioma: ${structure.biome}`, infoX + 10, infoY + 60);
-      } else if (isHovered) {
-        ctx.strokeStyle = structureColors[structure.type] || structureColors.unknown;
+        // Dibujar ejes de coordenadas
+        ctx.strokeStyle = '#ff0000';
         ctx.lineWidth = 1;
+        
+        // Eje X
         ctx.beginPath();
-        ctx.arc(x, z, scaledSize / 2 + 4, 0, Math.PI * 2);
+        ctx.moveTo(0, centerZ);
+        ctx.lineTo(canvas.width, centerZ);
         ctx.stroke();
+        
+        // Eje Z
+        ctx.beginPath();
+        ctx.moveTo(centerX, 0);
+        ctx.lineTo(centerX, canvas.height);
+        ctx.stroke();
+        
+        // Dibujar el punto de spawn
+        ctx.fillStyle = '#ffff00';
+        ctx.beginPath();
+        ctx.arc(centerX, centerZ, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Dibujar estructuras
+        for (const structure of structures) {
+          // Filtrar por tipo
+          if (!filters.includes(structure.type)) continue;
+          
+          // Calcular posición en el canvas
+          const structX = centerX + (structure.x / 16) * chunkSize;
+          const structZ = centerZ + (structure.z / 16) * chunkSize;
+          
+          // Si está fuera del canvas, saltarla
+          if (structX < -20 || structX > canvas.width + 20 || 
+              structZ < -20 || structZ > canvas.height + 20) {
+            continue;
+          }
+          
+          // Tamaño según zoom
+          const size = Math.max(8, 12 * zoom);
+          
+          // Dibujar icono
+          ctx.fillStyle = biomeColors[structure.biome] || '#888';
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          
+          // Si está seleccionada, destacarla
+          if (selectedStructure && 
+              selectedStructure.x === structure.x && 
+              selectedStructure.z === structure.z) {
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#ff0';
+          }
+          
+          // Dibujar el marcador
+          ctx.beginPath();
+          ctx.arc(structX, structZ, size/2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          
+          // Tipo de estructura (primera letra)
+          ctx.fillStyle = '#fff';
+          ctx.font = `bold ${size}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(structure.type[0].toUpperCase(), structX, structZ);
+        }
+        
+        // Mostrar información del bioma
+        if (hoveredBiome !== null && hoveredCoords !== null) {
+          ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          ctx.fillRect(10, 10, 200, 60);
+          
+          ctx.fillStyle = '#fff';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'left';
+          ctx.fillText(`X: ${hoveredCoords.x}, Z: ${hoveredCoords.z}`, 20, 30);
+          ctx.fillText(`Bioma: ${biomeNames[hoveredBiome] || 'Desconocido'}`, 20, 50);
+        }
+        
+        // Mostrar información de la estructura seleccionada
+        if (selectedStructure) {
+          const structX = centerX + (selectedStructure.x / 16) * chunkSize;
+          const structZ = centerZ + (selectedStructure.z / 16) * chunkSize;
+          
+          ctx.fillStyle = 'rgba(0,0,0,0.8)';
+          ctx.fillRect(structX + 10, structZ - 10, 150, 70);
+          
+          ctx.fillStyle = '#fff';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'left';
+          
+          const biomeName = biomeNames[selectedStructure.biome] || 'Desconocido';
+          
+          ctx.fillText(`${selectedStructure.type}`, structX + 15, structZ);
+          ctx.fillText(`X: ${selectedStructure.x}, Z: ${selectedStructure.z}`, structX + 15, structZ + 15);
+          ctx.fillText(`Bioma: ${biomeName}`, structX + 15, structZ + 30);
+          ctx.fillText(`Distancia: ${selectedStructure.distanceFromSpawn}`, structX + 15, structZ + 45);
+        }
+      };
+      
+      render();
+    }, [position, zoom, structures, filters, selectedStructure, showBiomes, biomeCache]);
+    
+    // Ajustar el tamaño del canvas al contenedor
+    useEffect(() => {
+      const resizeCanvas = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        const container = canvas.parentElement;
+        if (!container) return;
+        
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+      };
+      
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      
+      return () => {
+        window.removeEventListener('resize', resizeCanvas);
+      };
+    }, []);
+    
+    // Manejo de eventos del canvas
+    const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+      // Llamar al manejador de arrastre
+      handleMouseMove(e);
+      
+      // Si no está arrastrando, mostrar información del bioma
+      if (!isDragging) {
+        const canvas = e.currentTarget;
+        const rect = canvas.getBoundingClientRect();
+        const canvasX = e.clientX - rect.left;
+        const canvasY = e.clientY - rect.top;
+        
+        const chunkSize = 16 * zoom;
+        const centerX = canvas.width / 2 + position.x;
+        const centerZ = canvas.height / 2 + position.y;
+        
+        // Convertir coordenadas del canvas a coordenadas del mundo
+        const worldX = Math.floor(((canvasX - centerX) / chunkSize) * 16);
+        const worldZ = Math.floor(((canvasY - centerZ) / chunkSize) * 16);
+        
+        // Obtener el bioma
+        getBiomeAtCached(worldX, worldZ).then(biome => {
+          setHoveredBiome(biome);
+          setHoveredCoords({x: worldX, z: worldZ});
+        });
       }
-    });
+    };
     
-    // Mostrar coordenadas actuales
-    const worldX = Math.floor(-position.x * 16 / zoom);
-    const worldZ = Math.floor(-position.y * 16 / zoom);
-    
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(10, canvas.height - 40, 180, 30);
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '12px Arial';
-    ctx.fillText(`X: ${worldX}, Z: ${worldZ}, Zoom: ${zoom.toFixed(1)}x`, 15, canvas.height - 20);
-  };
-  
-  // Manejo de eventos del mouse
-  
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-  };
-  
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    if (isDragging) {
-      setPosition({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y
-      });
-    }
-    
-    // Detectar estructura bajo el cursor
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    
-    const centerX = canvas.width / 2 + position.x;
-    const centerZ = canvas.height / 2 + position.y;
-    
-    let found = false;
-    
-    for (const structure of structures) {
-      if (filters.length > 0 && !filters.includes(structure.type)) continue;
+    // Manejar clic en el canvas
+    const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const canvas = e.currentTarget;
+      const rect = canvas.getBoundingClientRect();
+      const canvasX = e.clientX - rect.left;
+      const canvasY = e.clientY - rect.top;
       
-      const x = centerX + (structure.x * zoom) / 16;
-      const z = centerZ + (structure.z * zoom) / 16;
-      const size = structureSizes[structure.type] || 20;
-      const scaledSize = size * Math.max(0.5, Math.min(1.5, zoom / 1.5));
+      // Buscar estructuras cerca del clic
+      const selected = useMapStore.getState().handleCanvasClick(e, structures, filters);
       
-      const distance = Math.sqrt(Math.pow(mouseX - x, 2) + Math.pow(mouseY - z, 2));
-      
-      if (distance <= scaledSize / 2 + 5) {
-        setHoveredStructure(structure);
-        found = true;
-        break;
+      // Si no se seleccionó nada y hoveredBiome está disponible, mostrar información
+      if (!selected && hoveredBiome !== null && hoveredCoords !== null) {
+        toast.info(`Bioma: ${biomeNames[hoveredBiome] || 'Desconocido'}`, {
+          description: `Coordenadas: X=${hoveredCoords.x}, Z=${hoveredCoords.z}`
+        });
       }
-    }
+    };
     
-    if (!found) {
-      setHoveredStructure(null);
-    }
-  };
-  
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-  
-  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (hoveredStructure) {
-      setSelectedStructure(hoveredStructure === selectedStructure ? null : hoveredStructure);
-    } else {
-      setSelectedStructure(null);
-    }
-  };
-  
-  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.max(0.1, Math.min(10, zoom * zoomFactor));
-    
-    setZoom(newZoom);
-  };
-  
-  return (
-    <div className="relative w-full h-full">
-      <canvas
-        ref={canvasRef}
-        className={`w-full h-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onClick={handleClick}
-        onWheel={handleWheel}
-      />
-      
-      {mapLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-          <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-            <p className="text-muted-foreground">Generando mapa...</p>
+    return (
+      <div className="relative w-full h-full overflow-hidden">
+        <canvas
+          ref={canvasRef}
+          className={`w-full h-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onClick={handleCanvasClick}
+          onWheel={handleWheel}
+        />
+        
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
-        </div>
-      )}
-      
-      {selectedStructure && (
-        <div className="absolute bottom-4 right-4 p-4 bg-background/90 rounded-lg shadow-lg">
-          <h3 className="text-lg font-bold capitalize">{selectedStructure.type.replace('_', ' ')}</h3>
-          <p>Coordenadas: X: {selectedStructure.x}, Z: {selectedStructure.z}</p>
-          <p>Bioma: {selectedStructure.biome}</p>
-          <p>Distancia del spawn: {Math.round(selectedStructure.distanceFromSpawn)} bloques</p>
-        </div>
-      )}
-      
-      <div className="absolute top-4 right-4 flex space-x-2">
-        <button
-          className="p-2 bg-background/90 rounded-full hover:bg-background/80 transition-colors"
-          onClick={() => setZoom(Math.min(10, zoom * 1.2))}
-          title="Acercar"
-        >
-          +
-        </button>
-        <button
-          className="p-2 bg-background/90 rounded-full hover:bg-background/80 transition-colors"
-          onClick={() => setZoom(Math.max(0.1, zoom / 1.2))}
-          title="Alejar"
-        >
-          -
-        </button>
-        <button
-          className="p-2 bg-background/90 rounded-full hover:bg-background/80 transition-colors"
-          onClick={() => {
-            setPosition({ x: 0, y: 0 });
-            setZoom(1);
-          }}
-          title="Reiniciar vista"
-        >
-          ↺
-        </button>
+        )}
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
-ChunkbaseCubiomesMap.displayName = "ChunkbaseCubiomesMap";
+ChunkbaseCubiomesMap.displayName = 'ChunkbaseCubiomesMap';
 
 export default ChunkbaseCubiomesMap;
