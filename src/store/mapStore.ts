@@ -1,6 +1,14 @@
+
 import { create } from 'zustand';
-import { MinecraftStructure } from '@/utils/minecraft/StructureGenerator';
 import { toast } from 'sonner';
+
+export interface MinecraftStructure {
+  type: string;
+  x: number;
+  z: number;
+  biome: number;
+  distanceFromSpawn: number;
+}
 
 interface MapState {
   // Estado del mapa
@@ -12,6 +20,11 @@ interface MapState {
   showBiomes: boolean;
   filters: string[];
   
+  // Configuraciones
+  seed: string;
+  version: string;
+  activeStructures: string[];
+  
   // Acciones
   setPosition: (position: { x: number; y: number }) => void;
   setZoom: (zoom: number) => void;
@@ -19,7 +32,9 @@ interface MapState {
   setStartDragPosition: (position: { x: number; y: number }) => void;
   setSelectedStructure: (structure: MinecraftStructure | null) => void;
   setShowBiomes: (show: boolean) => void;
-  toggleFilter: (filter: string) => void;
+  setSeed: (seed: string) => void;
+  setVersion: (version: string) => void;
+  toggleStructure: (structureId: string) => void;
   
   // Funciones de interacción
   handleCanvasClick: (e: React.MouseEvent, structures: MinecraftStructure[], filters: string[]) => void;
@@ -41,6 +56,11 @@ export const useMapStore = create<MapState>((set, get) => ({
   showBiomes: false,
   filters: [],
   
+  // Configuraciones
+  seed: "1234",
+  version: "1.20",
+  activeStructures: ["village", "temple", "stronghold"],
+  
   // Setters
   setPosition: (position) => set({ position }),
   setZoom: (zoom) => set({ zoom }),
@@ -48,6 +68,14 @@ export const useMapStore = create<MapState>((set, get) => ({
   setStartDragPosition: (startDragPosition) => set({ startDragPosition }),
   setSelectedStructure: (selectedStructure) => set({ selectedStructure }),
   setShowBiomes: (showBiomes) => set({ showBiomes }),
+  setSeed: (seed) => set({ seed }),
+  setVersion: (version) => set({ version }),
+  
+  toggleStructure: (structureId) => set((state) => ({ 
+    activeStructures: state.activeStructures.includes(structureId)
+      ? state.activeStructures.filter(id => id !== structureId)
+      : [...state.activeStructures, structureId]
+  })),
   
   // Funciones de interacción
   handleCanvasClick: (e, structures, filters) => {
