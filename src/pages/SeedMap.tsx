@@ -4,24 +4,39 @@ import { motion } from "framer-motion";
 import Layout from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import SeedControls from "@/components/map/SeedControls";
-import ChunkbaseCubiomesMap from "@/components/map/ChunkbaseCubiomesMap";
+import ChunkbaseCubiomesMap, { ChunkbaseCubiomesMapRef } from "@/components/map/ChunkbaseCubiomesMap";
 import { useMapStore } from "@/store/mapStore";
-import { MinecraftStructure } from "@/utils/minecraft/StructureGenerator";
 import { toast } from "sonner";
 import MapControls from "@/components/map/MapControls";
+import { initCubiomes } from "@/utils/minecraft/initCubiomes";
 
 const SeedMap = () => {
-  // Estado para la versión de Minecraft (Java/Bedrock)
-  const [version, setVersion] = useState<"java" | "bedrock">("java");
-  const [seed, setSeed] = useState<string>("minecraft");
-  const [filters, setFilters] = useState<string[]>([]);
+  const { 
+    seed, 
+    setSeed, 
+    version, 
+    setVersion, 
+    activeStructures 
+  } = useMapStore();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const mapCanvasRef = useRef<{ downloadMap: () => void }>(null);
+  const mapCanvasRef = useRef<ChunkbaseCubiomesMapRef>(null);
+
+  // Inicializar Cubiomes al cargar la página
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        await initCubiomes();
+      } catch (error) {
+        console.error('Error al inicializar Cubiomes:', error);
+        toast.error('No se pudo inicializar el generador de mapas');
+      }
+    };
+    
+    initialize();
+  }, []);
 
   // Función para regenerar el mapa
   const handleRegenerate = () => {
-    // Actualizar la semilla con un valor aleatorio si es necesario
-    // o mantener la semilla actual
     toast.success("Regenerando mapa", {
       description: "Generando estructuras para la semilla: " + seed
     });
@@ -58,8 +73,8 @@ const SeedMap = () => {
           
           {/* Controles de semilla */}
           <SeedControls 
-            version={version} 
-            setVersion={setVersion} 
+            version={version as "java" | "bedrock"} 
+            setVersion={(v) => setVersion(v)} 
             seed={seed}
             onSeedChange={handleSeedChange}
             onGenerate={handleRegenerate}
@@ -67,8 +82,6 @@ const SeedMap = () => {
           
           {/* Controles del mapa */}
           <MapControls 
-            filters={filters} 
-            setFilters={setFilters} 
             onRegenerate={handleRegenerate} 
             onDownloadMap={handleDownloadMap} 
           />
@@ -86,8 +99,8 @@ const SeedMap = () => {
             <ChunkbaseCubiomesMap 
               ref={mapCanvasRef}
               seed={seed}
-              version={version} 
-              filters={filters} 
+              version={version as "java" | "bedrock"}
+              filters={activeStructures} 
               isLoading={isLoading}
               onLoadingChange={setIsLoading}
             />

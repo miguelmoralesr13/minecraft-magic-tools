@@ -1,85 +1,132 @@
-/**
- * MapControls.tsx
- * Componente para controlar el mapa de Minecraft
- */
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Card } from '@/components/ui/card';
+import { 
+  RefreshCw, 
+  Download, 
+  Layers, 
+  Map, 
+  ChevronUp, 
+  ChevronDown 
+} from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import FilterPanel from '@/components/FilterPanel';
 import { useMapStore } from '@/store/mapStore';
-import { STRUCTURE_TYPES } from '@/utils/minecraft/StructureGenerator';
 
 interface MapControlsProps {
-  filters: string[];
-  setFilters: (filters: string[]) => void;
-  onRegenerate: () => void;
-  onDownloadMap: () => void;
+  onRegenerate?: () => void;
+  onDownloadMap?: () => void;
 }
 
-const MapControls: React.FC<MapControlsProps> = ({ filters, setFilters, onRegenerate, onDownloadMap }) => {
-  const { handleCenter, toggleBiomes, showBiomes } = useMapStore();
+const MapControls: React.FC<MapControlsProps> = ({
+  onRegenerate,
+  onDownloadMap
+}) => {
+  const { 
+    showBiomes, 
+    setShowBiomes,
+    showControls,
+    setShowControls,
+    activeStructures,
+    setActiveStructures
+  } = useMapStore();
 
-  // Manejar cambios en los filtros
-  const handleFilterChange = (type: string) => {
-    if (filters.includes(type)) {
-      setFilters(filters.filter(f => f !== type));
+  // Función para alternar todos los filtros
+  const toggleAllFilters = (enable: boolean) => {
+    if (enable) {
+      // Habilitar todos los filtros disponibles
+      setActiveStructures([
+        'village', 
+        'fortress', 
+        'stronghold', 
+        'monument', 
+        'mansion', 
+        'temple', 
+        'mineshaft', 
+        'ruined_portal', 
+        'outpost', 
+        'spawner'
+      ]);
     } else {
-      setFilters([...filters, type]);
-    }
-  };
-
-  // Seleccionar/deseleccionar todos los filtros
-  const handleSelectAll = () => {
-    if (filters.length === STRUCTURE_TYPES.length) {
-      setFilters([]);
-    } else {
-      setFilters([...STRUCTURE_TYPES]);
+      // Deshabilitar todos los filtros
+      setActiveStructures([]);
     }
   };
 
   return (
-    <div className="bg-card rounded-lg p-4 shadow-md">
-      <div className="flex flex-wrap gap-2 mb-4">
-        <Button variant="outline" size="sm" onClick={handleCenter}>
-          Centrar Mapa
-        </Button>
-        <Button variant="outline" size="sm" onClick={toggleBiomes}>
-          {showBiomes ? 'Ocultar Biomas' : 'Mostrar Biomas'}
-        </Button>
-        <Button variant="outline" size="sm" onClick={onRegenerate}>
-          Regenerar Mapa
-        </Button>
-        <Button variant="outline" size="sm" onClick={onDownloadMap}>
-          Descargar Mapa
-        </Button>
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Filtrar Estructuras</h3>
-          <Button variant="ghost" size="sm" onClick={handleSelectAll}>
-            {filters.length === STRUCTURE_TYPES.length ? 'Deseleccionar Todo' : 'Seleccionar Todo'}
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          {STRUCTURE_TYPES.map(type => (
-            <div key={type} className="flex items-center space-x-2">
-              <Checkbox
-                id={`filter-${type}`}
-                checked={filters.includes(type)}
-                onCheckedChange={() => handleFilterChange(type)}
+    <div className="relative z-10">
+      {/* Botón de alternar controles */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="absolute right-4 -top-10"
+        onClick={() => setShowControls(!showControls)}
+      >
+        {showControls ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+        {showControls ? 'Ocultar controles' : 'Mostrar controles'}
+      </Button>
+      
+      {showControls && (
+        <Card className="p-4 mb-4 flex flex-wrap gap-4">
+          <div className="flex-1 min-w-[200px]">
+            <h3 className="font-medium mb-2 flex items-center">
+              <Layers className="w-4 h-4 mr-2" />
+              Capas
+            </h3>
+            <div className="flex items-center space-x-2 mb-2">
+              <Switch 
+                id="showBiomes" 
+                checked={showBiomes} 
+                onCheckedChange={setShowBiomes} 
               />
-              <label
-                htmlFor={`filter-${type}`}
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
-              </label>
+              <Label htmlFor="showBiomes">Mostrar biomas</Label>
             </div>
-          ))}
-        </div>
-      </div>
+            
+            <div className="flex gap-2 mt-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => toggleAllFilters(true)}
+              >
+                Seleccionar todo
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => toggleAllFilters(false)}
+              >
+                Deseleccionar todo
+              </Button>
+            </div>
+          </div>
+          
+          <div className="flex-1 min-w-[250px]">
+            <FilterPanel />
+          </div>
+          
+          <div className="flex-none w-full md:w-auto flex gap-2 mt-4 md:mt-0">
+            <Button
+              variant="outline"
+              onClick={onRegenerate}
+              className="flex items-center"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Regenerar
+            </Button>
+            
+            <Button
+              variant="outline"
+              onClick={onDownloadMap}
+              className="flex items-center"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Descargar
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };

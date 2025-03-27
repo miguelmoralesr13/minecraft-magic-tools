@@ -1,221 +1,171 @@
 
 import { create } from 'zustand';
-import { toast } from 'sonner';
+import { MinecraftStructure } from '@/utils/minecraft/StructureGenerator';
 
-export interface MinecraftStructure {
-  type: string;
-  x: number;
-  z: number;
-  biome: number;
-  distanceFromSpawn: number;
-}
-
-interface MapState {
-  // Estado del mapa
-  position: { x: number; y: number };
-  zoom: number;
-  isDragging: boolean;
-  startDragPosition: { x: number; y: number };
-  selectedStructure: MinecraftStructure | null;
-  showBiomes: boolean;
-  filters: string[];
-  
-  // Configuraciones
+interface MapStoreState {
+  // Semilla y versión
   seed: string;
   version: string;
-  activeStructures: string[];
-  
-  // Acciones
-  setPosition: (position: { x: number; y: number }) => void;
-  setZoom: (zoom: number) => void;
-  setIsDragging: (isDragging: boolean) => void;
-  setStartDragPosition: (position: { x: number; y: number }) => void;
-  setSelectedStructure: (structure: MinecraftStructure | null) => void;
-  setShowBiomes: (show: boolean) => void;
   setSeed: (seed: string) => void;
   setVersion: (version: string) => void;
-  toggleStructure: (structureId: string) => void;
   
-  // Funciones de interacción
-  handleCanvasClick: (e: React.MouseEvent, structures: MinecraftStructure[], filters: string[]) => void;
-  handleWheel: (e: React.WheelEvent) => void;
-  handleMouseDown: (e: React.MouseEvent) => void;
-  handleMouseMove: (e: React.MouseEvent) => void;
+  // Posición y zoom
+  position: { x: number; y: number };
+  zoom: number;
+  setPosition: (position: { x: number; y: number }) => void;
+  setZoom: (zoom: number) => void;
+  
+  // Estado de arrastre
+  isDragging: boolean;
+  dragStart: { x: number; y: number };
+  setIsDragging: (isDragging: boolean) => void;
+  setDragStart: (dragStart: { x: number; y: number }) => void;
+  
+  // Estructura seleccionada
+  selectedStructure: MinecraftStructure | null;
+  setSelectedStructure: (structure: MinecraftStructure | null) => void;
+  
+  // Filtros de estructuras
+  activeStructures: string[];
+  toggleStructure: (structureType: string) => void;
+  setActiveStructures: (structures: string[]) => void;
+  
+  // Configuración de visualización
+  showBiomes: boolean;
+  setShowBiomes: (show: boolean) => void;
+  showControls: boolean;
+  setShowControls: (show: boolean) => void;
+  
+  // Eventos del canvas
+  handleMouseDown: (e: React.MouseEvent<HTMLCanvasElement>) => void;
+  handleMouseMove: (e: React.MouseEvent<HTMLCanvasElement>) => void;
   handleMouseUp: () => void;
-  handleCenter: () => void;
-  toggleBiomes: () => void;
+  handleWheel: (e: React.WheelEvent<HTMLCanvasElement>) => void;
+  handleCanvasClick: (
+    e: React.MouseEvent<HTMLCanvasElement>,
+    structures: MinecraftStructure[],
+    filters: string[]
+  ) => void;
 }
 
-export const useMapStore = create<MapState>((set, get) => ({
-  // Estado inicial
+export const useMapStore = create<MapStoreState>((set, get) => ({
+  // Valores iniciales
+  seed: 'minecraft',
+  version: '1.20',
   position: { x: 0, y: 0 },
-  zoom: 1.5, // Aumentado para que el mapa se vea más grande inicialmente
+  zoom: 1,
   isDragging: false,
-  startDragPosition: { x: 0, y: 0 },
+  dragStart: { x: 0, y: 0 },
   selectedStructure: null,
+  activeStructures: [
+    'village', 
+    'fortress', 
+    'stronghold', 
+    'monument', 
+    'mansion', 
+    'temple', 
+    'mineshaft', 
+    'ruined_portal', 
+    'outpost', 
+    'spawner'
+  ],
   showBiomes: false,
-  filters: [],
-  
-  // Configuraciones
-  seed: "1234",
-  version: "1.20",
-  activeStructures: ["village", "temple", "stronghold"],
+  showControls: true,
   
   // Setters
+  setSeed: (seed) => set({ seed }),
+  setVersion: (version) => set({ version }),
   setPosition: (position) => set({ position }),
   setZoom: (zoom) => set({ zoom }),
   setIsDragging: (isDragging) => set({ isDragging }),
-  setStartDragPosition: (startDragPosition) => set({ startDragPosition }),
+  setDragStart: (dragStart) => set({ dragStart }),
   setSelectedStructure: (selectedStructure) => set({ selectedStructure }),
+  setActiveStructures: (activeStructures) => set({ activeStructures }),
   setShowBiomes: (showBiomes) => set({ showBiomes }),
-  setSeed: (seed) => set({ seed }),
-  setVersion: (version) => set({ version }),
+  setShowControls: (showControls) => set({ showControls }),
   
-  toggleStructure: (structureId) => set((state) => ({ 
-    activeStructures: state.activeStructures.includes(structureId)
-      ? state.activeStructures.filter(id => id !== structureId)
-      : [...state.activeStructures, structureId]
-  })),
-  
-  // Funciones de interacción
-  handleCanvasClick: (e, structures, filters) => {
-    const canvas = e.currentTarget as HTMLCanvasElement;
-    if (!canvas) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const canvasX = e.clientX - rect.left;
-    const canvasY = e.clientY - rect.top;
-    
-    const { position, zoom } = get();
-    
-    // Convertir coordenadas del canvas a coordenadas del mundo
-    const worldX = ((canvasX - canvas.width/2 - position.x) * 16) / zoom;
-    const worldZ = ((canvasY - canvas.height/2 - position.y) * 16) / zoom;
-    
-    // Encontrar la estructura más cercana dentro de un radio
-    const clickRadius = 30 / zoom; // Radio de detección en bloques
-    let closestStructure = null;
-    let minDistance = clickRadius;
-    let closestFilteredStructure = null;
-    let minFilteredDistance = clickRadius;
-    
-    structures.forEach(structure => {
-      const distance = Math.sqrt(
-        Math.pow(structure.x - worldX, 2) + 
-        Math.pow(structure.z - worldZ, 2)
-      );
-      
-      // Verificar si la estructura está dentro del radio de detección
-      if (distance < clickRadius) {
-        // Comprobar si la estructura está filtrada
-        const isFiltered = filters.length > 0 && !filters.includes(structure.type);
-        
-        if (!isFiltered && distance < minDistance) {
-          // Priorizar estructuras no filtradas
-          minDistance = distance;
-          closestStructure = structure;
-        } else if (isFiltered && distance < minFilteredDistance) {
-          // Guardar la estructura filtrada más cercana como respaldo
-          minFilteredDistance = distance;
-          closestFilteredStructure = structure;
-        }
-      }
-    });
-    
-    // Si no hay una estructura no filtrada cercana, usar la filtrada más cercana
-    if (!closestStructure && closestFilteredStructure) {
-      closestStructure = closestFilteredStructure;
-    }
-    
-    if (closestStructure) {
-      set({ selectedStructure: closestStructure });
-      
-      // Mostrar toast con información
-      toast.info(`${closestStructure.type.charAt(0).toUpperCase() + closestStructure.type.slice(1)}`, {
-        description: `Coords: ${closestStructure.x}, ${closestStructure.z} | Bioma: ${closestStructure.biome} | Distancia al spawn: ${Math.floor(closestStructure.distanceFromSpawn)} bloques`
-      });
+  // Toggle para filtros de estructuras
+  toggleStructure: (structureType) => {
+    const { activeStructures } = get();
+    if (activeStructures.includes(structureType)) {
+      set({ activeStructures: activeStructures.filter(type => type !== structureType) });
     } else {
-      set({ selectedStructure: null });
+      set({ activeStructures: [...activeStructures, structureType] });
     }
   },
   
-  handleWheel: (e) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    const { zoom } = get();
-    const newZoom = Math.max(0.5, Math.min(2, zoom + delta));
-    set({ zoom: newZoom });
-  },
-  
+  // Eventos del canvas
   handleMouseDown: (e) => {
-    const canvas = e.currentTarget as HTMLCanvasElement;
-    if (!canvas) return;
-    
+    const { setIsDragging, setDragStart, position } = get();
+    const canvas = e.currentTarget;
     const rect = canvas.getBoundingClientRect();
-    const startX = e.clientX - rect.left;
-    const startY = e.clientY - rect.top;
-    
-    set({
-      isDragging: true,
-      startDragPosition: { x: startX, y: startY }
+    setIsDragging(true);
+    setDragStart({ 
+      x: e.clientX - rect.left - position.x, 
+      y: e.clientY - rect.top - position.y 
     });
   },
   
   handleMouseMove: (e) => {
-    const { isDragging, startDragPosition, position } = get();
-    
+    const { isDragging, dragStart, setPosition } = get();
     if (!isDragging) return;
     
-    const canvas = e.currentTarget as HTMLCanvasElement;
-    if (!canvas) return;
-    
+    const canvas = e.currentTarget;
     const rect = canvas.getBoundingClientRect();
-    const currentX = e.clientX - rect.left;
-    const currentY = e.clientY - rect.top;
-    
-    const deltaX = currentX - startDragPosition.x;
-    const deltaY = currentY - startDragPosition.y;
-    
-    set({
-      position: {
-        x: position.x + deltaX,
-        y: position.y + deltaY
-      },
-      startDragPosition: { x: currentX, y: currentY }
+    setPosition({
+      x: e.clientX - rect.left - dragStart.x,
+      y: e.clientY - rect.top - dragStart.y
     });
   },
   
   handleMouseUp: () => {
-    set({ isDragging: false });
+    const { setIsDragging } = get();
+    setIsDragging(false);
   },
   
-  handleCenter: () => {
-    set({
-      position: { x: 0, y: 0 },
-      zoom: 1
-    });
+  handleWheel: (e) => {
+    e.preventDefault();
+    const { zoom, setZoom } = get();
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    setZoom(Math.max(0.1, Math.min(10, zoom * zoomFactor)));
+  },
+  
+  handleCanvasClick: (e, structures, filters) => {
+    const { position, zoom, setSelectedStructure } = get();
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
     
-    toast.info("Mapa centrado", {
-      description: "Vista restablecida a la posición inicial"
-    });
-  },
-  
-  toggleBiomes: () => {
-    const { showBiomes } = get();
-    set({ showBiomes: !showBiomes });
+    const centerX = canvas.width / 2 + position.x;
+    const centerZ = canvas.height / 2 + position.y;
     
-    toast.info(showBiomes ? "Biomas ocultos" : "Biomas mostrados", {
-      description: showBiomes 
-        ? "Mostrando vista de cuadrícula" 
-        : "Mostrando vista de biomas"
-    });
-  },
-  
-  toggleFilter: (filter) => {
-    const { filters } = get();
-    const newFilters = filters.includes(filter)
-      ? filters.filter(f => f !== filter)
-      : [...filters, filter];
-    set({ filters: newFilters });
+    // Buscar estructura bajo el cursor
+    for (const structure of structures) {
+      if (filters.length > 0 && !filters.includes(structure.type)) continue;
+      
+      const x = centerX + (structure.x * zoom) / 16;
+      const z = centerZ + (structure.z * zoom) / 16;
+      const size = 20; // Tamaño base del icono
+      
+      const distance = Math.sqrt(Math.pow(mouseX - x, 2) + Math.pow(mouseY - z, 2));
+      
+      if (distance <= size / 2 + 5) {
+        // Alternar selección
+        const currentSelected = get().selectedStructure;
+        if (currentSelected && currentSelected.x === structure.x && currentSelected.z === structure.z) {
+          setSelectedStructure(null);
+        } else {
+          setSelectedStructure(structure);
+        }
+        return;
+      }
+    }
+    
+    // Si no se hizo clic en ninguna estructura, deseleccionar
+    setSelectedStructure(null);
   }
 }));
+
+// Export el tipo de estructura
+export type { MinecraftStructure };

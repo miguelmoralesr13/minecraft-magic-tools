@@ -1,9 +1,10 @@
+
 /**
  * initCubiomes.ts
  * Inicializa el módulo Cubiomes WebAssembly al cargar la aplicación
  */
 
-import { loadCubiomesModule } from './CubiomesModule';
+import { initCubiomesWasm, isCubiomesWasmLoaded } from './CubiomesWebAssembly';
 
 /**
  * Inicializa el módulo Cubiomes
@@ -12,7 +13,7 @@ import { loadCubiomesModule } from './CubiomesModule';
 export const initCubiomes = async (): Promise<void> => {
   try {
     console.log('Inicializando módulo Cubiomes...');
-    await loadCubiomesModule();
+    await initCubiomesWasm();
     console.log('Módulo Cubiomes inicializado correctamente');
   } catch (error) {
     console.error('Error al inicializar el módulo Cubiomes:', error);
@@ -22,7 +23,5 @@ export const initCubiomes = async (): Promise<void> => {
 
 // Exportar una función para verificar si el módulo está cargado
 export const isCubiomesLoaded = (): boolean => {
-  // Esta función debería verificar si el módulo está cargado
-  // En una implementación real, se verificaría el estado del módulo
-  return true;
+  return isCubiomesWasmLoaded();
 };
